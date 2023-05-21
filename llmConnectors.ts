@@ -1,10 +1,7 @@
-import { Configuration, OpenAIApi } from "openai";
-import { ChatPrompt, Prompt, PromptTypes } from "./prompt";
+import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from "openai";
 
 import { LLMCompletionFn } from "./api";
 import { generatorOrPromise } from "./generatorOrPromise";
-import axios from "axios";
-import { type } from "os";
 
 const configuration = new Configuration({
   apiKey: "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",
@@ -17,20 +14,6 @@ const configuration = new Configuration({
 });
 
 export const openAIApi = new OpenAIApi(configuration);
-
-export const davinciCompletion: LLMCompletionFn<Prompt> = function (props) {
-  async function* generator() {
-    const result = await openAIApi.createCompletion({
-      model: "text-davinci-001",
-      prompt: props.prompt.toOpenAIPrompt(),
-      temperature: 1,
-    });
-    yield result.data.choices[0].text!;
-    return result.data.choices[0].text!;
-  }
-
-  return generatorOrPromise(generator());
-};
 
 async function* parseOpenAIStream(stream: NodeJS.ReadableStream) {
   let content = "";
@@ -51,16 +34,41 @@ async function* parseOpenAIStream(stream: NodeJS.ReadableStream) {
   }
 }
 
-export const chatGPT3Completion: LLMCompletionFn<ChatPrompt> = function (
-  props
-) {
+export const davinciCompletion: LLMCompletionFn = function (props) {
+  async function* generator() {
+    let fullString = "";
+
+    const response = await openAIApi.createCompletion(
+      {
+        model: "text-davinci-001",
+        prompt: props.prompt.toOpenAIPrompt(),
+        temperature: 1,
+      },
+      { responseType: "stream" }
+    );
+
+    const stream = response.data as unknown as NodeJS.ReadableStream;
+
+    for await (const chunk of parseOpenAIStream(stream)) {
+      fullString += chunk.toString();
+      yield chunk.toString();
+    }
+
+    return fullString;
+  }
+
+  return generatorOrPromise(generator());
+};
+
+export const chatGPT3Completion: LLMCompletionFn = function (props) {
   async function* generator() {
     let fullString = "";
 
     const response = await openAIApi.createChatCompletion(
       {
         model: "gpt-3.5-turbo",
-        messages: props.prompt.toOpenAIPrompt(),
+        messages:
+          props.prompt.toOpenAIPrompt() as ChatCompletionRequestMessage[],
         stream: true,
         temperature: 1,
       },
@@ -80,16 +88,15 @@ export const chatGPT3Completion: LLMCompletionFn<ChatPrompt> = function (
   return generatorOrPromise(generator());
 };
 
-export const chatGPT4Completion: LLMCompletionFn<ChatPrompt> = function (
-  props
-) {
+export const chatGPT4Completion: LLMCompletionFn = function (props) {
   async function* generator() {
     let fullString = "";
 
     const response = await openAIApi.createChatCompletion(
       {
         model: "gpt-4",
-        messages: props.prompt.toOpenAIPrompt(),
+        messages:
+          props.prompt.toOpenAIPrompt() as ChatCompletionRequestMessage[],
         stream: true,
         temperature: 1,
       },

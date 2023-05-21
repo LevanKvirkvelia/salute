@@ -1,29 +1,32 @@
-import { Action, AnyObject, LLMAction, RoleAction, Variables } from "./api";
+import { davinci, gpt3 } from "./actions/llms";
+import { Action, ActionProps, AnyObject, LLMAction, Variables } from "./api";
 import { generatorOrPromise } from "./generatorOrPromise";
-import { chatGPT3Completion, davinciCompletion } from "./llms";
-import {
-  ChatPrompt,
-  ChatPromptElement,
-  Prompt,
-  PromptElement,
-  Roles,
-  printChatElement,
-} from "./prompt";
+import { getActionsGenerator } from "./getActionsGenerator";
+import { Roles, printChatElement } from "./prompt";
 
-function gen(name: string, stop?: string): Action {
-  return function ({
-    variables,
-    currentPrompt,
-    completion,
-    stop: defaultStop,
-  }) {
+function param<T>(name: keyof T["params"]): Action<T> {
+  return function ({ currentPrompt, context, params }) {
+    async function* generator() {
+      yield currentPrompt.pushElement({
+        content: `${params[name]}` || "",
+        source: "parameter",
+        role: context.role,
+      });
+    }
+
+    return generatorOrPromise(generator());
+  };
+}
+
+function gen(name: string, stop?: string): Action<any> {
+  return function ({ vars, currentPrompt, completion, nextString }) {
     async function* generator() {
       const llmStream = completion({
         prompt: currentPrompt,
-        stop: typeof stop === "string" ? stop : defaultStop,
+        stop: typeof stop === "string" ? stop : nextString,
       });
       for await (const result of llmStream.generator) {
-        variables[name] = result;
+        vars[name] = result;
         yield currentPrompt.getLLMElement(result);
       }
     }
@@ -32,43 +35,46 @@ function gen(name: string, stop?: string): Action {
   };
 }
 
-function role(role: Roles) {
+export type RoleAction<Parameters> = Action<Parameters>;
+function role<Parameters>(role: Roles) {
+  return function (
+    strings: TemplateStringsArray,
+    ...inputs: (Action<Parameters> | string)[]
+  ) {
+    const f: RoleAction<Parameters> = function ({ context, ...props }) {
+      const generator = getActionsGenerator({
+        ...props,
+        strings,
+        inputs,
+        context: { ...context, role },
+      });
+
+      return generatorOrPromise(generator());
+    };
+    return f;
+  };
+}
+
+export const system = role("system");
+export const user = role("user");
+export const assistant = role("assistant");
+
+function each<T = any>(items: T[]) {
   return function (
     strings: TemplateStringsArray,
     ...inputs: (Action | string)[]
-  ): RoleAction {
-    return function ({ variables, currentPrompt, completion }) {
+  ): Action {
+    return function (props) {
       async function* generator() {
-        for (let i = 0; i < strings.length; i++) {
-          const input = inputs[i];
+        for (const item of items) {
+          const innerGenerator = getActionsGenerator({
+            ...props,
+            strings,
+            inputs,
+          });
 
-          if (strings[i])
-            yield currentPrompt.pushElement({
-              content: strings[i],
-              source: "prompt",
-              role,
-            });
-
-          if (input === undefined) {
-            break;
-          } else if (typeof input === "function") {
-            const generator = (input as Action<ChatPrompt>)({
-              variables,
-              completion,
-              currentPrompt,
-              stop: strings[i + 1],
-            });
-
-            for await (const value of generator.generator) {
-              yield currentPrompt.pushElement(value) as ChatPromptElement;
-            }
-          } else {
-            const newConstantElement: ChatPromptElement = {
-              content: input,
-              source: "constant",
-              role,
-            };
-            yield currentPrompt.pushElement(newConstantElement);
+          for await (const value of innerGenerator()) {
+            yield value;
           }
         }
       }
@@ -78,107 +84,54 @@ function role(role: Roles) {
   };
 }
 
-const system = role("system");
-const user = role("user");
-const assistant = role("assistant");
-
-function gpt3<T extends AnyObject | undefined = any>(
-  messages: RoleAction[] | ((parameters: T) => RoleAction[])
-): LLMAction<ChatPrompt, Exclude<T, undefined>> {
-  return (parameters: T) => {
-    const chat = new ChatPrompt();
-    const variables: Variables = {};
-    const _messages: RoleAction[] =
-      typeof messages === "function" ? messages(parameters) : messages;
-
-    async function* generator() {
-      for (let i = 0; i < _messages.length; i++) {
-        const roleGenerator = _messages[i]({
-          completion: chatGPT3Completion,
-          variables,
-          currentPrompt: chat,
-        }).generator;
-
-        for await (const value of roleGenerator) {
-          yield value;
-        }
-      }
-      return {
-        prompt: chat,
-        variables,
-      };
-    }
-
-    return generatorOrPromise(generator());
-  };
-}
-
-async function davinci(
-  strings: TemplateStringsArray,
-  ...inputs: Action<Prompt>[]
-) {
-  const currentPrompt = new Prompt();
-  const variables: Variables = {};
-
-  async function* generator() {
-    for (let i = 0; i < strings.length - 1; i++) {
-      const input = inputs[i];
-
-      yield currentPrompt.pushElement({
-        content: strings[i],
-        source: "prompt",
-      });
-
-      if (input === undefined) {
-        continue;
-      } else if (typeof input === "function") {
-        const generator = input({
-          variables,
-          completion: davinciCompletion,
-          currentPrompt: currentPrompt,
-          stop: strings[i + 1],
-        });
-
-        for await (const value of generator.generator) {
-          yield value;
-        }
-      } else {
-        const newConstantElement: PromptElement = {
-          content: input,
-          source: "constant",
-        };
-        yield currentPrompt.pushElement(newConstantElement);
-      }
-    }
-    return currentPrompt.pushElement({
-      content: strings[strings.length - 1],
-      source: "prompt",
-    });
-  }
-
-  return generatorOrPromise(generator());
-}
-
 const AI_NAME = "Midjourney";
 
-async function main() {
-  const generator = gpt3<{ query: string }>(({ query }) => [
-    system`Act as a prompt generator for a generative AI called "${AI_NAME}". 
-${AI_NAME} AI generates images based on given prompts.`,
-    user`My query is: ${query}
+const QUESTIONS = [
+  `Main elements with specific imagery details`,
+  `Next, describe the environment`,
+  `Now, provide the mood / feelings and atmosphere of the scene`,
+  `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
+];
 
-Generate descriptions about my query, in realistic photographic style, for an Instagram post. The answer should be one sentence long, starting directly with the description.
-Main elements with specific imagery details:`,
-    assistant`${gen("description")}`,
-    user`Next, describe the environment.`,
-    assistant`${gen("environment")}`,
-    user`Now, provide the mood / feelings and atmosphere of the scene.`,
-    assistant`${gen("mood", "\n")}`,
-    user`Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings.`,
-    assistant`${gen("photography", "\n")}`,
-  ])({
-    query: `Picture a yoga studio and a teacher demonstrating yoga poses while students follow along, expressing mindfulness and balance. Studio with natural wood floors, large windows.`,
+async function main() {
+  const agent = gpt3<{ query: string }>([
+    system`
+      Act as a prompt generator for a generative AI called "${AI_NAME}".
+      ${AI_NAME} AI generates images based on given prompts.
+    `,
+    user`
+      My query is: ${gen("name")}
+      Generate descriptions about my query, in realistic photographic style, for an Instagram post.
+      The answer should be one sentence long, starting directly with the description.
+    `,
+    ...QUESTIONS.flatMap((item) => [
+      user`${item}`,
+      assistant`${gen("answer")}`,
+    ]),
+  ]);
+
+  agent({
+    query: `fksdlfsl;df;lds`,
   });
+
+  agent({
+    query: `asdasd`,
+  });
+
+  const proverbAgent = davinci<{
+    proverb: string;
+    book: string;
+    chapter: number;
+    verse: number;
+  }>`
+    Tweak this proverb to apply to model instructions instead.
+    ${(q) => q.params.proverb}
+    - {{book}} {{chapter}}:{{verse}}
+
+    UPDATED
+    Where there is no guidance{{gen 'rewrite' stop="\\n-"}}
+    - GPT {{gen 'chapter'}}:{{gen 'verse'}}
+  `;
 
   let lastRole = null;
   for await (const a of generator.generator) {
@@ -188,6 +141,7 @@ Main elements with specific imagery details:`,
     }
     printChatElement(a);
   }
+
   console.log("\n----------------------------------------");
 }
 

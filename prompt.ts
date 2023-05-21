@@ -2,25 +2,28 @@ import chalk = require("chalk");
 import { ChatCompletionRequestMessage } from "openai";
 
 export type PromptSources = "llm" | "parameter" | "constant" | "prompt";
-export type Roles = "user" | "assistant" | "system";
 
-export type PromptElement = {
+export type Roles = "user" | "assistant" | "system" | "none";
+export type PromptElement<Role extends Roles = Roles> = {
   content: string;
   source: PromptSources;
+  role: Role;
 };
-export type ChatPromptElement = PromptElement & { role: Roles };
 
-export type PromptElementTypes = PromptElement | ChatPromptElement;
-export type PromptTypes = Prompt | ChatPrompt;
+export type ChatPromptRoles = PromptElement[];
 
-export type ChatRolePrompt = ChatPromptElement[];
+export class PromptStorage extends Array<ChatPromptRoles> {
+  constructor(private roles: boolean = true) {
+    super();
+  }
 
-export class ChatPrompt extends Array<ChatRolePrompt> {
-  pushElement(promptElement: ChatPromptElement) {
+  pushElement(promptElement: PromptElement) {
     const lastRolePrompt = this[this.length - 1];
 
     const lastRolePromptRole =
       lastRolePrompt?.[lastRolePrompt.length - 1]?.role;
+
+    if (!this.roles) promptElement.role = "none";
 
     if (!lastRolePrompt || lastRolePromptRole !== promptElement.role) {
       super.push([promptElement]);
@@ -33,54 +36,41 @@ export class ChatPrompt extends Array<ChatRolePrompt> {
   getLLMElement(generated: string) {
     return {
       content: generated,
-      role: "assistant",
+      role: this.roles ? "assistant" : "none",
       source: "llm",
-    } as ChatPromptElement;
+    } as PromptElement;
   }
 
   toOpenAIPrompt() {
-    const messages: ChatCompletionRequestMessage[] = [];
-    for (const rolePrompt of this) {
-      rolePrompt.forEach((promptElement, i) => {
-        if (i === 0) {
-          messages.push({
-            content: promptElement.content,
-            role: promptElement.role,
-          });
-        } else {
-          messages[messages.length - 1].content += promptElement.content;
-        }
-      });
+    if (this.roles) {
+      const messages: ChatCompletionRequestMessage[] = [];
+      for (const rolePrompt of this) {
+        rolePrompt.forEach((promptElement, i) => {
+          if (promptElement.role === "none")
+            throw new Error("Role cannot be 'none'");
+
+          if (i === 0) {
+            messages.push({
+              content: promptElement.content,
+              role: promptElement.role,
+            });
+          } else {
+            messages[messages.length - 1].content += promptElement.content;
+          }
+        });
+      }
+      return messages;
+    } else {
+      return this.map((rolePrompt) => {
+        return rolePrompt
+          .map((promptElement) => promptElement.content)
+          .join("");
+      }).join("");
     }
-    return messages;
   }
 }
 
-export class Prompt extends Array<PromptElement> {
-  pushElement(promptElement: PromptElement) {
-    this.push(promptElement);
-    return promptElement;
-  }
-
-  getLLMElement(promptElement: string) {
-    const newElement: PromptElement = {
-      content: promptElement,
-      source: "llm",
-    };
-
-    return newElement;
-  }
-
-  toOpenAIPrompt() {
-    let prompt = "";
-    for (const promptElement of this) {
-      prompt += promptElement.content;
-    }
-    return prompt;
-  }
-}
-
-export function printChatElement(element: ChatPromptElement) {
+export function printChatElement(element: PromptElement) {
   switch (element.source) {
     case "constant":
       process.stdout.write(chalk.yellow(element.content));
@@ -97,7 +87,7 @@ export function printChatElement(element: ChatPromptElement) {
   }
 }
 
-function prettyChatLog(chat: ChatPrompt) {
+function prettyChatLog(chat: PromptStorage) {
   for (const rolePrompt of chat) {
     console.log(`----------${rolePrompt[0].role}----------\n`);
     rolePrompt.forEach((el) => printChatElement(el));

@@ -3,6 +3,9 @@
     "declaration": true,
     "target": "es6",
     "module": "commonjs",
+    "lib": [
+      "ES2019.Array"
+    ],
     "noImplicitAny": true,
     "strictNullChecks": true,
     "outDir": "dist",
