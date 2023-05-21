@@ -28,11 +28,13 @@ export function gen(name: string, stop?: string): Action<any> {
         prompt: currentPrompt,
         stop: typeof stop === "string" ? stop : nextString,
       });
+      let fullString = "";
 
       for await (const result of llmStream.generator) {
-        vars[name] = result;
+        fullString += result;
         yield currentPrompt.getLLMElement(result);
       }
+      vars[name] = fullString;
     }
 
     return generatorOrPromise(generator());
@@ -127,10 +129,11 @@ function aiWithContext<Parameters>({
     strings: TemplateStringsArray,
     ...inputs: AIInput<Parameters>[]
   ) {
+    const _strings = strings.map((s) => s.replace(/\n\s+/g, "\n"));
     const f: Action<Parameters> = function ({ context, ...props }) {
       const generator = getActionsGenerator({
         ...props,
-        strings,
+        strings: _strings as unknown as TemplateStringsArray,
         inputs,
         context: { ...context, role: role || context.role },
       });

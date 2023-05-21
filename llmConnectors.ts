@@ -46,7 +46,7 @@ export const davinciCompletion: LLMCompletionFn = function (props) {
       {
         model: "text-davinci-003",
         prompt: props.prompt.toOpenAIPrompt(),
-        temperature: 1,
+        temperature: 0,
         stream: true,
         stop: props.stop,
       },

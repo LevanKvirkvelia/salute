@@ -114,7 +114,7 @@ export function davinci<Parameters extends AnyObject | undefined = any>(
 
       for await (const value of generator.generator) {
         chat.pushElement(value);
-        yield value;
+        yield { ...value, chat, vars };
       }
 
       return { prompt: chat, vars };
