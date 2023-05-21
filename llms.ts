@@ -1,0 +1,110 @@
+import { Configuration, OpenAIApi } from "openai";
+import { ChatPrompt, Prompt, PromptTypes } from "./prompt";
+
+import { LLMCompletionFn } from "./api";
+import { generatorOrPromise } from "./generatorOrPromise";
+import axios from "axios";
+import { type } from "os";
+
+const configuration = new Configuration({
+  apiKey: "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",
+  basePath: "https://oai.hconeai.com/v1",
+  baseOptions: {
+    headers: {
+      "Helicone-Auth": "Bearer sk-s6usw5y-zaqea2i-xgtvt3y-ohh4w6a",
+    },
+  },
+});
+
+export const openAIApi = new OpenAIApi(configuration);
+
+export const davinciCompletion: LLMCompletionFn<Prompt> = function (props) {
+  async function* generator() {
+    const result = await openAIApi.createCompletion({
+      model: "text-davinci-001",
+      prompt: props.prompt.toOpenAIPrompt(),
+      temperature: 1,
+    });
+    yield result.data.choices[0].text!;
+    return result.data.choices[0].text!;
+  }
+
+  return generatorOrPromise(generator());
+};
+
+async function* parseOpenAIStream(stream: NodeJS.ReadableStream) {
+  let content = "";
+  for await (const chunk of stream) {
+    content += chunk.toString();
+    while (content.indexOf("\n") !== -1) {
+      if (content.indexOf("\n") === -1) break;
+      const nextRow = content.slice(0, content.indexOf("\n") + 1);
+      content = content.slice(content.indexOf("\n") + 2);
+      const data = nextRow.replace("data: ", "");
+
+      if (data.trim() === "[DONE]") return;
+      const json = JSON.parse(data);
+      if (json.choices[0]?.delta?.content) {
+        yield json.choices[0].delta.content.toString();
+      }
+    }
+  }
+}
+
+export const chatGPT3Completion: LLMCompletionFn<ChatPrompt> = function (
+  props
+) {
+  async function* generator() {
+    let fullString = "";
+
+    const response = await openAIApi.createChatCompletion(
+      {
+        model: "gpt-3.5-turbo",
+        messages: props.prompt.toOpenAIPrompt(),
+        stream: true,
+        temperature: 1,
+      },
+      { responseType: "stream" }
+    );
+
+    const stream = response.data as unknown as NodeJS.ReadableStream;
+
+    for await (const chunk of parseOpenAIStream(stream)) {
+      fullString += chunk.toString();
+      yield chunk.toString();
+    }
+
+    return fullString;
+  }
+
+  return generatorOrPromise(generator());
+};
+
+export const chatGPT4Completion: LLMCompletionFn<ChatPrompt> = function (
+  props
+) {
+  async function* generator() {
+    let fullString = "";
+
+    const response = await openAIApi.createChatCompletion(
+      {
+        model: "gpt-4",
+        messages: props.prompt.toOpenAIPrompt(),
+        stream: true,
+        temperature: 1,
+      },
+      { responseType: "stream" }
+    );
+
+    const stream = response.data as unknown as NodeJS.ReadableStream;
+
+    for await (const chunk of parseOpenAIStream(stream)) {
+      fullString += chunk.toString();
+      yield chunk.toString();
+    }
+
+    return fullString;
+  }
+
+  return generatorOrPromise(generator());
+};
