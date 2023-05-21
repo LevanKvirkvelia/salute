@@ -1,17 +1,36 @@
-import { RoleAction } from "../index";
-import { Action, AnyObject, LLMAction, Variables } from "../api";
+import { RoleAction, AIFunction, ai, RoleAIFunction } from "../actions";
+import { AnyObject, LLMAction, Variables } from "../api";
 import { generatorOrPromise } from "../generatorOrPromise";
-import { getActionsGenerator } from "../getActionsGenerator";
-import { chatGPT3Completion } from "../llmConnectors";
-import { PromptStorage, Roles, printChatElement } from "../prompt";
+import {
+  chatGPT3Completion,
+  chatGPT4Completion,
+  davinciCompletion,
+} from "../llmConnectors";
+import { PromptStorage } from "../PromptStorage";
+
+type LLMPromptFunction<Parameters> = (props: {
+  ai: AIFunction<Parameters>;
+  params: Parameters;
+}) => ReturnType<AIFunction<Parameters>>;
+
+type LLMPromptArrayFunction<Parameters> = (props: {
+  ai: AIFunction<Parameters>;
+  params: Parameters;
+}) => ReturnType<RoleAIFunction<Parameters>>[];
 
 export function gpt3<Parameters extends AnyObject = any>(
-  messages: RoleAction<Parameters>[]
+  messages: RoleAction<Parameters>[] | LLMPromptArrayFunction<Parameters>
 ): LLMAction<Exclude<Parameters, undefined>> {
   return (parameters: Parameters) => {
     const chat = new PromptStorage();
     const vars: Variables = {};
-    const _messages: RoleAction<Parameters>[] = messages;
+    const _messages: RoleAction<Parameters>[] =
+      typeof messages === "function"
+        ? messages({
+            ai: ai as unknown as AIFunction<Parameters>,
+            params: parameters,
+          })
+        : messages;
 
     async function* generator() {
       for (let i = 0; i < _messages.length; i++) {
@@ -25,6 +44,7 @@ export function gpt3<Parameters extends AnyObject = any>(
         }).generator;
 
         for await (const value of roleGenerator) {
+          chat.pushElement(value);
           yield value;
         }
       }
@@ -35,24 +55,70 @@ export function gpt3<Parameters extends AnyObject = any>(
   };
 }
 
-export async function davinci<Parameters extends AnyObject | undefined = any>(
-  strings: TemplateStringsArray,
-  ...inputs: Action<Parameters>[]
+export function gpt4<Parameters extends AnyObject = any>(
+  messages: RoleAction<Parameters>[] | LLMPromptArrayFunction<Parameters>
+): LLMAction<Exclude<Parameters, undefined>> {
+  return (parameters: Parameters) => {
+    const chat = new PromptStorage();
+    const vars: Variables = {};
+    const _messages: RoleAction<Parameters>[] =
+      typeof messages === "function"
+        ? messages({
+            ai: ai as unknown as AIFunction<Parameters>,
+            params: parameters,
+          })
+        : messages;
+
+    async function* generator() {
+      for (let i = 0; i < _messages.length; i++) {
+        const roleGenerator = _messages[i]({
+          completion: chatGPT4Completion,
+          vars,
+          params: parameters,
+          currentPrompt: chat,
+          context: { role: "none" },
+          nextString: undefined,
+        }).generator;
+
+        for await (const value of roleGenerator) {
+          chat.pushElement(value);
+          yield value;
+        }
+      }
+      return { prompt: chat, vars };
+    }
+
+    return generatorOrPromise(generator());
+  };
+}
+
+export function davinci<Parameters extends AnyObject | undefined = any>(
+  props: LLMPromptFunction<Parameters>
 ) {
   return (params: Parameters) => {
-    const currentPrompt = new PromptStorage(false);
-    const variables: Variables = {};
+    const chat = new PromptStorage(false);
+    const vars: Variables = {};
 
-    const generator = getActionsGenerator({
-      strings,
-      inputs,
-      completion: chatGPT3Completion,
-      currentPrompt,
-      vars: variables,
-      nextString: undefined,
-      params,
-      context: { role: "none" },
-    });
+    async function* generator() {
+      const generator = props({
+        ai: ai as unknown as AIFunction<Parameters>,
+        params,
+      })({
+        completion: davinciCompletion,
+        vars,
+        context: { role: "none" },
+        params,
+        currentPrompt: chat,
+        nextString: undefined,
+      });
+
+      for await (const value of generator.generator) {
+        chat.pushElement(value);
+        yield value;
+      }
+
+      return { prompt: chat, vars };
+    }
 
     return generatorOrPromise(generator());
   };

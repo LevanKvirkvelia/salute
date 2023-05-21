@@ -27,8 +27,12 @@ async function* parseOpenAIStream(stream: NodeJS.ReadableStream) {
 
       if (data.trim() === "[DONE]") return;
       const json = JSON.parse(data);
+
       if (json.choices[0]?.delta?.content) {
         yield json.choices[0].delta.content.toString();
+      }
+      if (json.choices[0]?.text) {
+        yield json.choices[0]?.text.toString();
       }
     }
   }
@@ -37,12 +41,14 @@ async function* parseOpenAIStream(stream: NodeJS.ReadableStream) {
 export const davinciCompletion: LLMCompletionFn = function (props) {
   async function* generator() {
     let fullString = "";
-
+    // console.log({ stop: props.stop });
     const response = await openAIApi.createCompletion(
       {
-        model: "text-davinci-001",
+        model: "text-davinci-003",
         prompt: props.prompt.toOpenAIPrompt(),
         temperature: 1,
+        stream: true,
+        stop: props.stop,
       },
       { responseType: "stream" }
     );

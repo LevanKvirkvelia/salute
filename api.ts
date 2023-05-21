@@ -1,4 +1,4 @@
-import { PromptElement, PromptStorage, Roles } from "./prompt";
+import { PromptElement, PromptStorage, Roles } from "./PromptStorage";
 
 export type PromiseOrCursor<Element, Return = void> = {
   next: (...args: [] | [unknown]) => Promise<IteratorResult<Element, Return>>;
@@ -26,10 +26,7 @@ export type AnyObject = Record<string, any>;
 
 export type LLMAction<T extends AnyObject> = (
   props: T
-) => PromiseOrCursor<
-  PromptElement,
-  { prompt: PromptStorage; vars: Variables }
->;
+) => PromiseOrCursor<PromptElement, { prompt: PromptStorage; vars: Variables }>;
 
 export type LLMCompletionFn = (props: {
   prompt: PromptStorage;

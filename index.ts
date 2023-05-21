@@ -1,140 +1,87 @@
-import { davinci, gpt3 } from "./actions/llms";
-import { Action, ActionProps, AnyObject, LLMAction, Variables } from "./api";
-import { generatorOrPromise } from "./generatorOrPromise";
-import { getActionsGenerator } from "./getActionsGenerator";
-import { Roles, printChatElement } from "./prompt";
-
-function param<T>(name: keyof T["params"]): Action<T> {
-  return function ({ currentPrompt, context, params }) {
-    async function* generator() {
-      yield currentPrompt.pushElement({
-        content: `${params[name]}` || "",
-        source: "parameter",
-        role: context.role,
-      });
-    }
-
-    return generatorOrPromise(generator());
-  };
-}
-
-function gen(name: string, stop?: string): Action<any> {
-  return function ({ vars, currentPrompt, completion, nextString }) {
-    async function* generator() {
-      const llmStream = completion({
-        prompt: currentPrompt,
-        stop: typeof stop === "string" ? stop : nextString,
-      });
-      for await (const result of llmStream.generator) {
-        vars[name] = result;
-        yield currentPrompt.getLLMElement(result);
-      }
-    }
-
-    return generatorOrPromise(generator());
-  };
-}
-
-export type RoleAction<Parameters> = Action<Parameters>;
-function role<Parameters>(role: Roles) {
-  return function (
-    strings: TemplateStringsArray,
-    ...inputs: (Action<Parameters> | string)[]
-  ) {
-    const f: RoleAction<Parameters> = function ({ context, ...props }) {
-      const generator = getActionsGenerator({
-        ...props,
-        strings,
-        inputs,
-        context: { ...context, role },
-      });
-
-      return generatorOrPromise(generator());
-    };
-    return f;
-  };
-}
-
-export const system = role("system");
-export const user = role("user");
-export const assistant = role("assistant");
-
-function each<T = any>(items: T[]) {
-  return function (
-    strings: TemplateStringsArray,
-    ...inputs: (Action | string)[]
-  ): Action {
-    return function (props) {
-      async function* generator() {
-        for (const item of items) {
-          const innerGenerator = getActionsGenerator({
-            ...props,
-            strings,
-            inputs,
-          });
-
-          for await (const value of innerGenerator()) {
-            yield value;
-          }
-        }
-      }
-
-      return generatorOrPromise(generator());
-    };
-  };
-}
+import { PromptElement, printChatElement } from "./PromptStorage";
+import { assistant, gen, system, user } from "./actions";
+import { davinci, gpt3, gpt4 } from "./actions/llms";
 
 const AI_NAME = "Midjourney";
 
-const QUESTIONS = [
-  `Main elements with specific imagery details`,
-  `Next, describe the environment`,
-  `Now, provide the mood / feelings and atmosphere of the scene`,
-  `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
-];
-
-async function main() {
-  const agent = gpt3<{ query: string }>([
-    system`
-      Act as a prompt generator for a generative AI called "${AI_NAME}".
-      ${AI_NAME} AI generates images based on given prompts.
-    `,
-    user`
-      My query is: ${gen("name")}
-      Generate descriptions about my query, in realistic photographic style, for an Instagram post.
-      The answer should be one sentence long, starting directly with the description.
-    `,
-    ...QUESTIONS.flatMap((item) => [
-      user`${item}`,
-      assistant`${gen("answer")}`,
-    ]),
-  ]);
-
-  agent({
-    query: `fksdlfsl;df;lds`,
-  });
-
-  agent({
-    query: `asdasd`,
-  });
-
+function defaultExample() {
   const proverbAgent = davinci<{
     proverb: string;
     book: string;
     chapter: number;
     verse: number;
-  }>`
-    Tweak this proverb to apply to model instructions instead.
-    ${(q) => q.params.proverb}
-    - {{book}} {{chapter}}:{{verse}}
+  }>(
+    ({ ai, params }) => ai`
+Tweak this proverb to apply to model instructions instead.
+${params.proverb}
+- ${params.book} ${params.chapter}:${params.verse}
 
-    UPDATED
-    Where there is no guidance{{gen 'rewrite' stop="\\n-"}}
-    - GPT {{gen 'chapter'}}:{{gen 'verse'}}
-  `;
+UPDATED
+Where there is no guidance${gen("rewrite")}
+- GPT ${gen("chapter")}:${gen("verse")}
+`
+  );
 
+  const generator = proverbAgent({
+    proverb:
+      "Where there is no guidance, a people falls,\nbut in an abundance of counselors there is safety.",
+    book: "Proverbs",
+    chapter: 11,
+    verse: 14,
+  });
+
+  return generator;
+}
+
+function arrayInTextExample() {
+  const QUESTIONS = [
+    `Who is the first president of the United States?`,
+    `What is the capital of France?`,
+    `Who discovered the theory of relativity?`,
+    `What is Pomelo?`,
+  ];
+  const proverbAgent = davinci(
+    ({ ai }) => ai`
+      Answer the following questions in a single sentence.
+
+      ${QUESTIONS.map((item) => ai`
+        Q: ${item}
+        A:${gen("answer")}
+      `)}
+
+      Thank You!
+      `
+  );
+
+  return proverbAgent({});
+}
+
+function instaPrompt() {
+  const QUESTIONS = [
+    `Main elements with specific imagery details`,
+    `Next, describe the environment`,
+    `Now, provide the mood / feelings and atmosphere of the scene`,
+    `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
+  ];
+  const agent = gpt3<{ query: string }>(({ ai, params }) => [
+    system`Act as a prompt generator for a generative AI called "${AI_NAME}". ${AI_NAME} AI generates images based on given prompts.`,
+    user`My query is: ${params.query}
+Generate descriptions about my query, in realistic photographic style, for an Instagram post. The answer should be one sentence long, starting directly with the description.
+
+`,
+    ...QUESTIONS.flatMap((item) => [
+      user`${item}`,
+      assistant`${gen("answer")}`,
+    ]),
+  ]);
+  return agent({
+    query: `A picture of a dog`,
+  });
+}
+
+async function renderAgent(gen: AsyncGenerator<PromptElement>) {
   let lastRole = null;
-  for await (const a of generator.generator) {
+  for await (const a of gen) {
     if (a.role !== lastRole) {
       console.log(`\n------------------ ${a.role} ------------------`);
       lastRole = a.role;
@@ -143,6 +90,12 @@ async function main() {
   }
 
   console.log("\n----------------------------------------");
+}
+
+async function main() {
+  await renderAgent(arrayInTextExample().generator);
+  await renderAgent(instaPrompt().generator);
+  await renderAgent(defaultExample().generator);
 }
 
 main();

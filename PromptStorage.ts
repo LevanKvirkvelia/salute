@@ -10,14 +10,15 @@ export type PromptElement<Role extends Roles = Roles> = {
   role: Role;
 };
 
-export type ChatPromptRoles = PromptElement[];
+export type Message = PromptElement[];
 
-export class PromptStorage extends Array<ChatPromptRoles> {
+export class PromptStorage extends Array<Message> {
   constructor(private roles: boolean = true) {
     super();
   }
 
   pushElement(promptElement: PromptElement) {
+    // console.log("pushing element", promptElement);
     const lastRolePrompt = this[this.length - 1];
 
     const lastRolePromptRole =
@@ -30,6 +31,10 @@ export class PromptStorage extends Array<ChatPromptRoles> {
     } else {
       lastRolePrompt.push(promptElement);
     }
+    return promptElement;
+  }
+
+  getElement(promptElement: PromptElement) {
     return promptElement;
   }
 
@@ -61,10 +66,8 @@ export class PromptStorage extends Array<ChatPromptRoles> {
       }
       return messages;
     } else {
-      return this.map((rolePrompt) => {
-        return rolePrompt
-          .map((promptElement) => promptElement.content)
-          .join("");
+      return this.map((mes) => {
+        return mes.map((promptElement) => promptElement.content).join("");
       }).join("");
     }
   }
