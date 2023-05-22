@@ -1,4 +1,4 @@
-import { RoleAction, ai, RoleTemplateFunction } from "./actions";
+import { RoleAction, ai, RoleTemplateFunction, gen, map } from "./actions";
 import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
 import {
   chatGPT3Completion,
@@ -6,15 +6,21 @@ import {
   davinciCompletion,
 } from "../llmConnectors";
 import { PromptElement, PromptStorage } from "../PromptStorage";
-import { Outputs, TemplateAction, runActions } from "./primitives";
+import {
+  Action,
+  Outputs,
+  TemplateAction,
+  TemplateActionInput,
+  runActions,
+} from "./primitives";
 
 export type AnyObject = Record<string, any>;
 
-export type LLMAction<T extends AnyObject> = (
+export type LLMAction<T extends AnyObject, O extends Outputs> = (
   props: T
 ) => PromiseOrCursor<
-  PromptElement & { prompt: PromptStorage; outputs: Outputs },
-  { prompt: PromptStorage; outputs: Outputs }
+  PromptElement & { prompt: PromptStorage; outputs: O },
+  { prompt: PromptStorage; outputs: O }
 >;
 
 export type LLMCompletionFn = (props: {
@@ -22,30 +28,80 @@ export type LLMCompletionFn = (props: {
   stop?: string;
 }) => PromiseOrCursor<string, string>;
 
-type LLMPromptFunction<Parameters> = (props: {
-  ai: TemplateAction<Parameters>;
-  params: Parameters;
-}) => ReturnType<TemplateAction<Parameters>>;
+type GenFunc<T> = (name: T, stop?: string) => Action<any>;
+type MapFunc<T> = <Parameters = any>(
+  name: T,
+  elements: TemplateActionInput<Parameters>[]
+) => Action<Parameters>;
 
-type LLMPromptArrayFunction<Parameters> = (props: {
-  ai: TemplateAction<Parameters>;
-  params: Parameters;
-}) => (RoleAction<Parameters>[][] | RoleAction<Parameters>)[];
+// type
+type SubTypeKeysOnly<O extends Outputs> = {
+  [K in keyof O]: O[K] extends Outputs[] ? K : never;
+}[keyof O];
+
+type NonObjectKeys<T> = {
+  [K in keyof T]: T[K] extends string | string[] ? K : never;
+}[keyof T];
+
+type ArrayElementType<T> = T extends (infer E)[] ? E : never;
+
+type RecursiveNonObjectKeys<T> = T extends string | string[]
+  ? never
+  : T extends any[]
+  ? RecursiveNonObjectKeys<ArrayElementType<T>>
+  :
+      | {
+          [K in keyof T]: RecursiveNonObjectKeys<T[K]>;
+        }[keyof T]
+      | NonObjectKeys<T>;
+
+type Example = {
+  lol: { a: string }[];
+  random: string;
+  answer: string[];
+};
+
+type ExampleKeys = RecursiveNonObjectKeys<Example>;
+
+type ActionFuncs<O extends Outputs> = {
+  gen: GenFunc<RecursiveNonObjectKeys<O>>;
+  map: MapFunc<SubTypeKeysOnly<O>>;
+};
+
+// type GenFunc = Exclude<Parameters<typeof gen>>;
+
+type LLMPromptFunction<Parameters, O extends Outputs = Outputs> = (
+  props: {
+    ai: TemplateAction<Parameters>;
+    params: Parameters;
+  } & ActionFuncs<O>
+) => ReturnType<TemplateAction<Parameters>>;
+
+type LLMPromptArrayFunction<Parameters, O extends Outputs> = (
+  props: {
+    ai: TemplateAction<Parameters>;
+    params: Parameters;
+  } & ActionFuncs<O>
+) => (RoleAction<Parameters>[][] | RoleAction<Parameters>)[];
 
 function chatGptFactory(llmFunction: LLMCompletionFn) {
-  return function <Parameters extends AnyObject = any>(
+  return function <
+    Parameters extends AnyObject = any,
+    O extends Outputs = Outputs
+  >(
     messages:
       | (RoleAction<Parameters> | RoleAction<Parameters>[][])[]
-      | LLMPromptArrayFunction<Parameters>
-  ): LLMAction<Exclude<Parameters, undefined>> {
+      | LLMPromptArrayFunction<Parameters, O>
+  ): LLMAction<Exclude<Parameters, undefined>, O> {
     return (parameters: Parameters) => {
       const prompt = new PromptStorage();
-      const outputs: Outputs = {};
+      const outputs = {} as O;
       const _messages =
         typeof messages === "function"
           ? messages({
               ai: ai as unknown as TemplateAction<Parameters>,
               params: parameters,
+              ...typedActionFuncs<O>(),
             })
           : messages;
 
@@ -74,20 +130,31 @@ function chatGptFactory(llmFunction: LLMCompletionFn) {
   };
 }
 
-export const gpt3 = chatGptFactory(chatGPT3Completion);
+export const chatGPT3 = chatGptFactory(chatGPT3Completion);
 export const gpt4 = chatGptFactory(chatGPT4Completion);
 
-export function davinci<Parameters extends AnyObject | undefined = any>(
-  props: LLMPromptFunction<Parameters>
-): LLMAction<Exclude<Parameters, undefined>> {
+export const typedActionFuncs = <O extends Outputs>(): ActionFuncs<O> => {
+  return {
+    gen: gen as unknown as GenFunc<RecursiveNonObjectKeys<O>>,
+    map: map as unknown as MapFunc<SubTypeKeysOnly<O>>,
+  };
+};
+
+export function davinci<
+  Parameters extends AnyObject | undefined = any,
+  O extends Outputs = Outputs
+>(
+  props: LLMPromptFunction<Parameters, O>
+): LLMAction<Exclude<Parameters, undefined>, O> {
   return (params: Parameters) => {
     const prompt = new PromptStorage(false);
-    const outputs: Outputs = {};
+    const outputs = {} as O;
 
     async function* generator() {
       const generator = props({
         ai: ai as unknown as TemplateAction<Parameters>,
         params,
+        ...typedActionFuncs<O>(),
       })({
         completion: davinciCompletion,
         outputs,

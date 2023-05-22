@@ -3,7 +3,10 @@ import { PromptElement, PromptStorage, Roles } from "../PromptStorage";
 import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
 import { LLMCompletionFn } from "./llms";
 
-export type Outputs = { [key: string]: string | string[] | Outputs[] };
+// export type
+
+// export type Outputs = { [key: string]: string | string[] | Outputs[] };
+export type Outputs = Record<string, string | string[] | Outputs[]>;
 
 export type Context = {
   role: Roles;
@@ -26,9 +29,9 @@ export type ActionProps<Parameters> = {
   nextString: string | undefined;
 };
 
-export type Action<Parameters> = (
+export type Action<Parameters, Return = void> = (
   props: ActionProps<Parameters>
-) => PromiseOrCursor<PromptElement, void>;
+) => PromiseOrCursor<PromptElement, Return>;
 
 export function createAction<Parameters = any>(
   generator: (

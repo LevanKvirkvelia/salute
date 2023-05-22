@@ -1,6 +1,6 @@
 import { PromptElement, printChatElement } from "./src/PromptStorage";
 import { assistant, gen, map, system, user } from "./src/actions/actions";
-import { davinci, gpt3 } from "./src/actions/llms";
+import { davinci, chatGPT3 } from "./src/actions/llms";
 import { Outputs } from "./src/actions/primitives";
 
 const AI_NAME = "Midjourney";
@@ -13,8 +13,15 @@ type PropsType = {
 };
 
 function defaultExample() {
-  const proverbAgent = davinci<PropsType>(
-    ({ ai, params }) => ai`
+  const proverbAgent = davinci<
+    PropsType,
+    {
+      rewrite: string;
+      chapter: string;
+      verse: string;
+    }
+  >(
+    ({ ai, params, gen }) => ai`
       Tweak this proverb to apply to model instructions instead.
       ${params.proverb}
       - ${params.book} ${params.chapter}:${params.verse}
@@ -32,6 +39,8 @@ function defaultExample() {
     chapter: 11,
     verse: 14,
   });
+
+  // result.outputs.chapter;
 
   return result.generator;
 }
@@ -68,7 +77,16 @@ function instaPrompt() {
     `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
   ];
 
-  const agent = gpt3<{ query: string }>(({ params }) => [
+  const agent = chatGPT3<
+    { query: string },
+    {
+      lol: {
+        a: string;
+      }[];
+      answer: string[];
+      random: string;
+    }
+  >(({ params, gen, map }) => [
     system`
       Act as a prompt generator for a generative AI called "${AI_NAME}". 
       ${AI_NAME} AI generates images based on given prompts.
@@ -81,11 +99,17 @@ function instaPrompt() {
 
     map(
       "lol",
-      QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`])
+      // only allowed to use "lol"
+      QUESTIONS.map((item) => [
+        user`${item}`,
+        assistant`${
+          gen("a")
+          // "random" | "answer" | "lol" | "a"
+        }`,
+      ])
     ),
 
     QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
-    // QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
   ]);
 
   return agent({
@@ -140,7 +164,7 @@ Comment: Remember, answer as a {{role}}. Start your utterance with {{role}}:
 ${gen("answer")}
 {{~/geneach}}`;
 function democratAndRepublicanDebate() {
-  gpt3<{
+  chatGPT3<{
     role: string;
     firstQuestion?: string;
   }>(({ params }) => [

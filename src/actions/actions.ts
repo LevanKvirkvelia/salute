@@ -32,7 +32,7 @@ function vars<P = any>(name: keyof P): Action<P> {
   });
 }
 
-export function gen(name: string, stop?: string): Action<any> {
+export const gen = <T extends string>(name: T, stop?: string): Action<any> => {
   return createAction(async function* ({
     outputs,
     currentPrompt,
@@ -56,7 +56,7 @@ export function gen(name: string, stop?: string): Action<any> {
       (outputs[name] as string[]).push(fullString);
     }
   });
-}
+};
 
 export function map<Parameters = any>(
   varName: string,
