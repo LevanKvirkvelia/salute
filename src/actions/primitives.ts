@@ -9,6 +9,8 @@ export type Context = {
   role: Roles;
   currentLoopId?: string;
   outputToArray?: boolean;
+  outputAddress: string[];
+
 };
 
 export type State = {
@@ -62,12 +64,22 @@ export async function* runActions<Parameters>(
   if (Array.isArray(element)) {
     const currentLoopId = Math.random().toString(36).slice(2);
     let i = 0;
+    const isInArray = context.role !== "none" || !context.outputAddress[0];
     for (const _element of element) {
-      state.loops[currentLoopId] = i++;
-      yield* runActions(_element, {
-        ...props,
-        context: { ...context, currentLoopId, outputToArray: true },
-      });
+      console.log("runActions role", context.role);
+      if (isInArray) {
+        state.loops[currentLoopId] = i++;
+        yield* runActions(_element, {
+          ...props,
+          context: {
+            ...context,
+            currentLoopId: currentLoopId,
+            outputToArray: true,
+          },
+        });
+      } else {
+        yield* runActions(_element, props);
+      }
     }
   } else if (typeof element === "number" || typeof element === "string") {
     yield {

@@ -3,7 +3,7 @@ import { ChatCompletionRequestMessage } from "openai";
 
 export type PromptSources = "llm" | "parameter" | "constant" | "prompt";
 
-export type Roles = "user" | "assistant" | "system" | "none";
+export type Roles = "user" | "assistant" | "system" | "none" | "disabled";
 export type PromptElement = {
   content: string;
   source: PromptSources;
@@ -24,7 +24,7 @@ export class PromptStorage extends Array<Message> {
     const lastRolePromptRole =
       lastRolePrompt?.[lastRolePrompt.length - 1]?.role;
 
-    if (!this.roles) promptElement.role = "none";
+    if (!this.roles) promptElement.role = "disabled";
 
     if (!lastRolePrompt || lastRolePromptRole !== promptElement.role) {
       super.push([promptElement]);
@@ -51,8 +51,11 @@ export class PromptStorage extends Array<Message> {
       const messages: ChatCompletionRequestMessage[] = [];
       for (const rolePrompt of this) {
         rolePrompt.forEach((promptElement, i) => {
-          if (promptElement.role === "none")
-            throw new Error("Role cannot be 'none'");
+          if (
+            promptElement.role === "none" ||
+            promptElement.role === "disabled"
+          )
+            throw new Error("Role cannot be 'none' or 'disabled'");
 
           if (i === 0) {
             messages.push({

@@ -6,14 +6,14 @@ import {
   davinciCompletion,
 } from "../llmConnectors";
 import { PromptElement, PromptStorage } from "../PromptStorage";
-import { Outputs, TemplateAction } from "./primitives";
+import { Outputs, TemplateAction, runActions } from "./primitives";
 
 export type AnyObject = Record<string, any>;
 
 export type LLMAction<T extends AnyObject> = (
   props: T
 ) => PromiseOrCursor<
-  PromptElement,
+  PromptElement & { prompt: PromptStorage; outputs: Outputs },
   { prompt: PromptStorage; outputs: Outputs }
 >;
 
@@ -30,87 +30,56 @@ type LLMPromptFunction<Parameters> = (props: {
 type LLMPromptArrayFunction<Parameters> = (props: {
   ai: TemplateAction<Parameters>;
   params: Parameters;
-}) => ReturnType<RoleTemplateFunction<Parameters>>[];
+}) => (RoleAction<Parameters>[][] | RoleAction<Parameters>)[];
 
-export function gpt3<Parameters extends AnyObject = any>(
-  messages: RoleAction<Parameters>[] | LLMPromptArrayFunction<Parameters>
-): LLMAction<Exclude<Parameters, undefined>> {
-  return (parameters: Parameters) => {
-    const chat = new PromptStorage();
-    const outputs: Outputs = {};
-    const _messages: RoleAction<Parameters>[] =
-      typeof messages === "function"
-        ? messages({
-            ai: ai as unknown as TemplateAction<Parameters>,
+function chatGptFactory(llmFunction: LLMCompletionFn) {
+  return function <Parameters extends AnyObject = any>(
+    messages:
+      | (RoleAction<Parameters> | RoleAction<Parameters>[][])[]
+      | LLMPromptArrayFunction<Parameters>
+  ): LLMAction<Exclude<Parameters, undefined>> {
+    return (parameters: Parameters) => {
+      const prompt = new PromptStorage();
+      const outputs: Outputs = {};
+      const _messages =
+        typeof messages === "function"
+          ? messages({
+              ai: ai as unknown as TemplateAction<Parameters>,
+              params: parameters,
+            })
+          : messages;
+
+      async function* generator() {
+        for (let i = 0; i < _messages.length; i++) {
+          const generator = runActions(_messages[i], {
+            completion: llmFunction,
+            outputs,
             params: parameters,
-          })
-        : messages;
+            currentPrompt: prompt,
+            context: { role: "none", outputAddress: [] },
+            nextString: undefined,
+            state: { loops: {} },
+          });
 
-    async function* generator() {
-      for (let i = 0; i < _messages.length; i++) {
-        const roleGenerator = _messages[i]({
-          completion: chatGPT3Completion,
-          outputs,
-          params: parameters,
-          currentPrompt: chat,
-          context: { role: "none" },
-          nextString: undefined,
-          state: { loops: {} },
-        }).generator;
-
-        for await (const value of roleGenerator) {
-          chat.pushElement(value);
-          yield value;
+          for await (const value of generator) {
+            prompt.pushElement(value);
+            yield { ...value, prompt, outputs };
+          }
         }
+        return { prompt, outputs };
       }
-      return { prompt: chat, outputs };
-    }
 
-    return generatorOrPromise(generator());
+      return generatorOrPromise(generator());
+    };
   };
 }
 
-export function gpt4<Parameters extends AnyObject = any>(
-  messages: RoleAction<Parameters>[] | LLMPromptArrayFunction<Parameters>
-): LLMAction<Exclude<Parameters, undefined>> {
-  return (parameters: Parameters) => {
-    const prompt = new PromptStorage();
-    const outputs: Outputs = {};
-    const _messages: RoleAction<Parameters>[] =
-      typeof messages === "function"
-        ? messages({
-            ai: ai as unknown as TemplateAction<Parameters>,
-            params: parameters,
-          })
-        : messages;
-
-    async function* generator() {
-      for (let i = 0; i < _messages.length; i++) {
-        const roleGenerator = _messages[i]({
-          completion: chatGPT4Completion,
-          outputs,
-          params: parameters,
-          currentPrompt: prompt,
-          context: { role: "none" },
-          nextString: undefined,
-          state: { loops: {} },
-        }).generator;
-
-        for await (const value of roleGenerator) {
-          prompt.pushElement(value);
-          yield { ...value, prompt, outputs };
-        }
-      }
-      return { prompt, outputs };
-    }
-
-    return generatorOrPromise(generator());
-  };
-}
+export const gpt3 = chatGptFactory(chatGPT3Completion);
+export const gpt4 = chatGptFactory(chatGPT4Completion);
 
 export function davinci<Parameters extends AnyObject | undefined = any>(
   props: LLMPromptFunction<Parameters>
-) {
+): LLMAction<Exclude<Parameters, undefined>> {
   return (params: Parameters) => {
     const prompt = new PromptStorage(false);
     const outputs: Outputs = {};
@@ -122,7 +91,7 @@ export function davinci<Parameters extends AnyObject | undefined = any>(
       })({
         completion: davinciCompletion,
         outputs,
-        context: { role: "none" },
+        context: { role: "none", outputAddress: [] },
         params,
         currentPrompt: prompt,
         nextString: undefined,

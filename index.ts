@@ -1,5 +1,5 @@
 import { PromptElement, printChatElement } from "./src/PromptStorage";
-import { assistant, gen, system, user } from "./src/actions/actions";
+import { assistant, gen, map, system, user } from "./src/actions/actions";
 import { davinci, gpt3 } from "./src/actions/llms";
 import { Outputs } from "./src/actions/primitives";
 
@@ -48,11 +48,14 @@ function arrayInTextExample() {
     ({ ai }) => ai`
       Answer the following questions in a single sentence.
 
-      ${QUESTIONS.map(
-        (item) => ai`
+      ${map(
+        "answers",
+        QUESTIONS.map(
+          (item) => ai`
         Q: ${item}
         A:${gen("answer")}
       `
+        )
       )}
 
       Thank You!
@@ -66,8 +69,8 @@ function instaPrompt() {
   const QUESTIONS = [
     `Main elements with specific imagery details`,
     `Next, describe the environment`,
-    `Now, provide the mood / feelings and atmosphere of the scene`,
-    `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
+    // `Now, provide the mood / feelings and atmosphere of the scene`,
+    // `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
   ];
 
   const agent = gpt3<{ query: string }>(({ params }) => [
@@ -80,15 +83,17 @@ function instaPrompt() {
       Generate descriptions about my query, in realistic photographic style, for an Instagram post. 
       The answer should be one sentence long, starting directly with the description.
     `,
-    ...QUESTIONS.flatMap((item) => [
-      user`${item}`,
-      assistant`${gen("answer")}`,
-    ]),
+    map(
+      "lol",
+      QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`])
+    ),
+    // QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
+    QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
   ]);
 
   return agent({
     query: `A picture of a dog`,
-  });
+  }).generator;
 }
 
 `{{#system~}}
@@ -138,7 +143,7 @@ async function renderAgent(
   let lastRole = null;
   let lastElement: { outputs: Outputs } | null = null;
   for await (const a of gen) {
-    if (a.role !== lastRole && a.role !== "none") {
+    if (a.role !== lastRole && a.role !== "disabled") {
       console.log(`\n------------------ ${a.role} ------------------`);
       lastRole = a.role;
     }

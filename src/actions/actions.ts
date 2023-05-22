@@ -3,12 +3,17 @@ import {
   createAction,
   createNewContext,
   Outputs,
+  runActions,
   TemplateAction,
   TemplateActionInput,
 } from "./primitives";
 
-function vars<P = any>(name: keyof P): Action<P> {
+function wait<P = any>(name: keyof P): Action<P> {
   return createAction(async function* ({ currentPrompt, context, params }) {
+    while (typeof params[name] === undefined) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
     yield currentPrompt.getElement({
       content: `${params[name]}` || "",
       source: "parameter",
@@ -17,12 +22,8 @@ function vars<P = any>(name: keyof P): Action<P> {
   });
 }
 
-function wait<P = any>(name: keyof P): Action<P> {
+function vars<P = any>(name: keyof P): Action<P> {
   return createAction(async function* ({ currentPrompt, context, params }) {
-    while (typeof params[name] === undefined) {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-
     yield currentPrompt.getElement({
       content: `${params[name]}` || "",
       source: "parameter",
@@ -53,6 +54,33 @@ export function gen(name: string, stop?: string): Action<any> {
     else {
       if (!Array.isArray(outputs[name])) outputs[name] = [];
       (outputs[name] as string[]).push(fullString);
+    }
+  });
+}
+
+export function map<Parameters = any>(
+  varName: string,
+  elements: TemplateActionInput<Parameters>[]
+): Action<Parameters> {
+  return createAction(async function* (props) {
+    const loopId = Math.random().toString(36).slice(2, 9);
+
+    props.outputs[varName] = [];
+
+    for (const element of elements) {
+      const output: Outputs = {};
+      (props.outputs[varName] as Outputs[]).push(output);
+      const generator = runActions(element, {
+        ...props,
+        outputs: output,
+        context: {
+          ...props.context,
+          outputAddress: [...props.context.outputAddress, varName],
+          currentLoopId: loopId,
+          outputToArray: false,
+        },
+      });
+      yield* generator;
     }
   });
 }
