@@ -50,12 +50,7 @@ function arrayInTextExample() {
 
       ${map(
         "answers",
-        QUESTIONS.map(
-          (item) => ai`
-        Q: ${item}
-        A:${gen("answer")}
-      `
-        )
+        QUESTIONS.map((item) => ai`Q: ${item}\nA:${gen("answer")}`)
       )}
 
       Thank You!
@@ -158,7 +153,7 @@ async function renderAgent(
 async function main() {
   // await renderAgent(arrayInTextExample().generator);
   // await renderAgent(instaPrompt().generator);
-  await renderAgent(arrayInTextExample());
+  await renderAgent(instaPrompt());
 }
 
 main();

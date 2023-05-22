@@ -10,7 +10,6 @@ export type Context = {
   currentLoopId?: string;
   outputToArray?: boolean;
   outputAddress: string[];
-
 };
 
 export type State = {
@@ -66,7 +65,6 @@ export async function* runActions<Parameters>(
     let i = 0;
     const isInArray = context.role !== "none" || !context.outputAddress[0];
     for (const _element of element) {
-      console.log("runActions role", context.role);
       if (isInArray) {
         state.loops[currentLoopId] = i++;
         yield* runActions(_element, {
