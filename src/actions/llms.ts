@@ -130,7 +130,7 @@ function chatGptFactory(llmFunction: LLMCompletionFn) {
   };
 }
 
-export const chatGPT3 = chatGptFactory(chatGPT3Completion);
+export const gpt3 = chatGptFactory(chatGPT3Completion);
 export const gpt4 = chatGptFactory(chatGPT4Completion);
 
 export const typedActionFuncs = <O extends Outputs>(): ActionFuncs<O> => {

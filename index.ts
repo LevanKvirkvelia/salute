@@ -1,6 +1,6 @@
 import { PromptElement, printChatElement } from "./src/PromptStorage";
 import { assistant, gen, map, system, user } from "./src/actions/actions";
-import { davinci, chatGPT3 } from "./src/actions/llms";
+import { davinci, gpt3 } from "./src/actions/llms";
 import { Outputs } from "./src/actions/primitives";
 
 const AI_NAME = "Midjourney";
@@ -77,7 +77,7 @@ function instaPrompt() {
     `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
   ];
 
-  const agent = chatGPT3<
+  const agent = gpt3<
     { query: string },
     {
       lol: {
@@ -164,7 +164,7 @@ Comment: Remember, answer as a {{role}}. Start your utterance with {{role}}:
 ${gen("answer")}
 {{~/geneach}}`;
 function democratAndRepublicanDebate() {
-  chatGPT3<{
+  gpt3<{
     role: string;
     firstQuestion?: string;
   }>(({ params }) => [
