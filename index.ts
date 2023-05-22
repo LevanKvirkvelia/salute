@@ -1,13 +1,18 @@
-import { PromptElement, printChatElement } from "./PromptStorage";
-import { assistant, gen, system, user } from "./actions";
-import { davinci, gpt3, gpt4 } from "./actions/llms";
-import { Variables } from "./api";
+import { PromptElement, printChatElement } from "./src/PromptStorage";
+import { assistant, gen, system, user } from "./src/actions/actions";
+import { davinci, gpt3 } from "./src/actions/llms";
+import { Outputs } from "./src/actions/primitives";
 
 const AI_NAME = "Midjourney";
 
-type PropsType = { proverb: string; book: string; chapter: number;verse: number; };
+type PropsType = {
+  proverb: string;
+  book: string;
+  chapter: number;
+  verse: number;
+};
 
-async function defaultExample() {
+function defaultExample() {
   const proverbAgent = davinci<PropsType>(
     ({ ai, params }) => ai`
       Tweak this proverb to apply to model instructions instead.
@@ -20,7 +25,7 @@ async function defaultExample() {
     `
   );
 
-  const result = await proverbAgent({
+  const result = proverbAgent({
     proverb:
       "Where there is no guidance, a people falls,\nbut in an abundance of counselors there is safety.",
     book: "Proverbs",
@@ -28,7 +33,7 @@ async function defaultExample() {
     verse: 14,
   });
 
-  return result.chapter;
+  return result.generator;
 }
 
 function arrayInTextExample() {
@@ -54,7 +59,7 @@ function arrayInTextExample() {
       `
   );
 
-  return proverbAgent({});
+  return proverbAgent({}).generator;
 }
 
 function instaPrompt() {
@@ -86,11 +91,52 @@ function instaPrompt() {
   });
 }
 
+`{{#system~}}
+You are a helpful assistant
+{{~/system}}
+                                           
+{{#user~}}
+You will answer the user as {{role}} in the following conversation. At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. Never talk about the fact that you are an AI, even if the user asks you. Always answer as {{role}}.
+{{#if first_question}}You can also start the conversation.{{/if}}
+{{~/user}}
+                                           
+{{~! The assistant either starts the conversation or not, depending on if this is the first or second agent }}
+{{#assistant~}}
+Ok, I will follow these instructions.
+{{#if first_question}}Let me start the conversation now:
+{{role}}: {{first_question}}{{/if}}
+{{~/assistant}}
+
+{{~! Then the conversation unrolls }}
+{{~#geneach 'conversation' stop=False}}
+{{#user~}}
+User: {{set 'this.input' (await 'input')}}
+Comment: Remember, answer as a {{role}}. Start your utterance with {{role}}:
+{{~/user}}
+
+
+${gen("answer")}
+{{~/geneach}}`;
+function democratAndRepublicanDebate() {
+  gpt3<{
+    role: string;
+    firstQuestion?: string;
+  }>(({ params }) => [
+    system`You are a helpful assistant`,
+    user`
+      You will answer the user as ${params.role} in the following conversation. 
+      At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. 
+      Never talk about the fact that you are an AI, even if the user asks you. Always answer as {{role}}.`,
+    assistant`Ok, I will follow these instructions.`,
+    assistant`Let me start the conversation now. Here is my perspective on the topic:`,
+  ]);
+}
+
 async function renderAgent(
-  gen: AsyncGenerator<PromptElement & { vars: Variables }>
+  gen: AsyncGenerator<PromptElement & { outputs: Outputs }>
 ) {
   let lastRole = null;
-  let lastElement: { vars: Variables } | null = null;
+  let lastElement: { outputs: Outputs } | null = null;
   for await (const a of gen) {
     if (a.role !== lastRole && a.role !== "none") {
       console.log(`\n------------------ ${a.role} ------------------`);
@@ -101,13 +147,13 @@ async function renderAgent(
   }
 
   console.log("\n----------------------------------------");
-  console.log(lastElement?.vars);
+  console.log(lastElement?.outputs);
 }
 
 async function main() {
   // await renderAgent(arrayInTextExample().generator);
   // await renderAgent(instaPrompt().generator);
-  await renderAgent(defaultExample().generator);
+  await renderAgent(arrayInTextExample());
 }
 
 main();

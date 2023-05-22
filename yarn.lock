@@ -147,6 +147,11 @@ supports-color@^7.1.0:
   dependencies:
     has-flag "^4.0.0"
 
+ts-deepmerge@^6.0.3:
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/ts-deepmerge/-/ts-deepmerge-6.0.3.tgz#4ca1f7f3bf38b02e44b363702b7e5ed5fbffd0a9"
+  integrity sha512-MBBJL0UK/mMnZRONMz4J1CRu5NsGtsh+gR1nkn8KLE9LXo/PCzeHhQduhNary8m5/m9ryOOyFwVKxq81cPlaow==
+
 typescript@^3.6.4:
   version "3.9.10"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.9.10.tgz#70f3910ac7a51ed6bef79da7800690b19bf778b8"

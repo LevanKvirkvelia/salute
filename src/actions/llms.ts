@@ -1,33 +1,47 @@
-import { RoleAction, AIFunction, ai, RoleAIFunction } from "../actions";
-import { AnyObject, LLMAction, Variables } from "../api";
-import { generatorOrPromise } from "../generatorOrPromise";
+import { RoleAction, ai, RoleTemplateFunction } from "./actions";
+import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
 import {
   chatGPT3Completion,
   chatGPT4Completion,
   davinciCompletion,
 } from "../llmConnectors";
-import { PromptStorage } from "../PromptStorage";
+import { PromptElement, PromptStorage } from "../PromptStorage";
+import { Outputs, TemplateAction } from "./primitives";
+
+export type AnyObject = Record<string, any>;
+
+export type LLMAction<T extends AnyObject> = (
+  props: T
+) => PromiseOrCursor<
+  PromptElement,
+  { prompt: PromptStorage; outputs: Outputs }
+>;
+
+export type LLMCompletionFn = (props: {
+  prompt: PromptStorage;
+  stop?: string;
+}) => PromiseOrCursor<string, string>;
 
 type LLMPromptFunction<Parameters> = (props: {
-  ai: AIFunction<Parameters>;
+  ai: TemplateAction<Parameters>;
   params: Parameters;
-}) => ReturnType<AIFunction<Parameters>>;
+}) => ReturnType<TemplateAction<Parameters>>;
 
 type LLMPromptArrayFunction<Parameters> = (props: {
-  ai: AIFunction<Parameters>;
+  ai: TemplateAction<Parameters>;
   params: Parameters;
-}) => ReturnType<RoleAIFunction<Parameters>>[];
+}) => ReturnType<RoleTemplateFunction<Parameters>>[];
 
 export function gpt3<Parameters extends AnyObject = any>(
   messages: RoleAction<Parameters>[] | LLMPromptArrayFunction<Parameters>
 ): LLMAction<Exclude<Parameters, undefined>> {
   return (parameters: Parameters) => {
     const chat = new PromptStorage();
-    const vars: Variables = {};
+    const outputs: Outputs = {};
     const _messages: RoleAction<Parameters>[] =
       typeof messages === "function"
         ? messages({
-            ai: ai as unknown as AIFunction<Parameters>,
+            ai: ai as unknown as TemplateAction<Parameters>,
             params: parameters,
           })
         : messages;
@@ -36,11 +50,12 @@ export function gpt3<Parameters extends AnyObject = any>(
       for (let i = 0; i < _messages.length; i++) {
         const roleGenerator = _messages[i]({
           completion: chatGPT3Completion,
-          vars,
+          outputs,
           params: parameters,
           currentPrompt: chat,
           context: { role: "none" },
           nextString: undefined,
+          state: { loops: {} },
         }).generator;
 
         for await (const value of roleGenerator) {
@@ -48,7 +63,7 @@ export function gpt3<Parameters extends AnyObject = any>(
           yield value;
         }
       }
-      return { prompt: chat, vars };
+      return { prompt: chat, outputs };
     }
 
     return generatorOrPromise(generator());
@@ -59,12 +74,12 @@ export function gpt4<Parameters extends AnyObject = any>(
   messages: RoleAction<Parameters>[] | LLMPromptArrayFunction<Parameters>
 ): LLMAction<Exclude<Parameters, undefined>> {
   return (parameters: Parameters) => {
-    const chat = new PromptStorage();
-    const vars: Variables = {};
+    const prompt = new PromptStorage();
+    const outputs: Outputs = {};
     const _messages: RoleAction<Parameters>[] =
       typeof messages === "function"
         ? messages({
-            ai: ai as unknown as AIFunction<Parameters>,
+            ai: ai as unknown as TemplateAction<Parameters>,
             params: parameters,
           })
         : messages;
@@ -73,19 +88,20 @@ export function gpt4<Parameters extends AnyObject = any>(
       for (let i = 0; i < _messages.length; i++) {
         const roleGenerator = _messages[i]({
           completion: chatGPT4Completion,
-          vars,
+          outputs,
           params: parameters,
-          currentPrompt: chat,
+          currentPrompt: prompt,
           context: { role: "none" },
           nextString: undefined,
+          state: { loops: {} },
         }).generator;
 
         for await (const value of roleGenerator) {
-          chat.pushElement(value);
-          yield value;
+          prompt.pushElement(value);
+          yield { ...value, prompt, outputs };
         }
       }
-      return { prompt: chat, vars };
+      return { prompt, outputs };
     }
 
     return generatorOrPromise(generator());
@@ -96,28 +112,29 @@ export function davinci<Parameters extends AnyObject | undefined = any>(
   props: LLMPromptFunction<Parameters>
 ) {
   return (params: Parameters) => {
-    const chat = new PromptStorage(false);
-    const vars: Variables = {};
+    const prompt = new PromptStorage(false);
+    const outputs: Outputs = {};
 
     async function* generator() {
       const generator = props({
-        ai: ai as unknown as AIFunction<Parameters>,
+        ai: ai as unknown as TemplateAction<Parameters>,
         params,
       })({
         completion: davinciCompletion,
-        vars,
+        outputs,
         context: { role: "none" },
         params,
-        currentPrompt: chat,
+        currentPrompt: prompt,
         nextString: undefined,
+        state: { loops: {} },
       });
 
       for await (const value of generator.generator) {
-        chat.pushElement(value);
-        yield { ...value, chat, vars };
+        prompt.pushElement(value);
+        yield { ...value, prompt, outputs };
       }
 
-      return { prompt: chat, vars };
+      return { prompt, outputs };
     }
 
     return generatorOrPromise(generator());

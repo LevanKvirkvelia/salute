@@ -4,10 +4,10 @@ import { ChatCompletionRequestMessage } from "openai";
 export type PromptSources = "llm" | "parameter" | "constant" | "prompt";
 
 export type Roles = "user" | "assistant" | "system" | "none";
-export type PromptElement<Role extends Roles = Roles> = {
+export type PromptElement = {
   content: string;
   source: PromptSources;
-  role: Role;
+  role: Roles;
 };
 
 export type Message = PromptElement[];
