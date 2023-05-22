@@ -1,7 +1,7 @@
 import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from "openai";
 
-import { LLMCompletionFn } from "./api";
 import { generatorOrPromise } from "./generatorOrPromise";
+import { LLMCompletionFn } from "./actions/llms";
 
 const configuration = new Configuration({
   apiKey: "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",

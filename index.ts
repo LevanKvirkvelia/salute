@@ -46,7 +46,7 @@ function arrayInTextExample() {
 
   const proverbAgent = davinci(
     ({ ai }) => ai`
-      Answer the following questions in a single sentence.
+      Answer the questions in a single sentence.
 
       ${map(
         "answers",
@@ -64,8 +64,8 @@ function instaPrompt() {
   const QUESTIONS = [
     `Main elements with specific imagery details`,
     `Next, describe the environment`,
-    // `Now, provide the mood / feelings and atmosphere of the scene`,
-    // `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
+    `Now, provide the mood / feelings and atmosphere of the scene`,
+    `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
   ];
 
   const agent = gpt3<{ query: string }>(({ params }) => [
@@ -74,21 +74,43 @@ function instaPrompt() {
       ${AI_NAME} AI generates images based on given prompts.
     `,
     user`
-      My query is: ${params.query}
+      My query is:
       Generate descriptions about my query, in realistic photographic style, for an Instagram post. 
       The answer should be one sentence long, starting directly with the description.
     `,
+
     map(
       "lol",
       QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`])
     ),
-    // QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
+
     QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
+    // QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
   ]);
 
   return agent({
     query: `A picture of a dog`,
   }).generator;
+}
+
+function jsonExample() {
+  const proverbAgent = davinci(
+    ({ ai }) => ai`
+    The following is a character profile for an RPG game in JSON format.
+
+    json
+    {
+        "description": "${gen("description")}",
+        "name": "${gen("name", '"')}",
+        "age": ${gen("age", ",")},
+        "class": "${gen("class", '"')}",
+        "mantra": "${gen("mantra", '"')}",
+        "strength": ${gen("strength", ",")},
+        "items": [${[0, 0, 0].map(() => ai`"${gen("item", '"')}",`)}]
+    }`
+  );
+
+  return proverbAgent({}).generator;
 }
 
 `{{#system~}}
@@ -153,7 +175,7 @@ async function renderAgent(
 async function main() {
   // await renderAgent(arrayInTextExample().generator);
   // await renderAgent(instaPrompt().generator);
-  await renderAgent(instaPrompt());
+  await renderAgent(defaultExample());
 }
 
 main();
