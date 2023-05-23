@@ -15,8 +15,13 @@ export type Context = {
   outputAddress: string[];
 };
 
+export type Queue = {
+  [key: string]: any[];
+};
+
 export type State = {
   loops: { [key: string]: false | number };
+  queue: Queue;
 };
 
 export type ActionProps<Parameters> = {

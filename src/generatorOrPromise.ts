@@ -4,10 +4,11 @@ export type PromiseOrCursor<Element, Return = void> = {
   then(cb: (result: Return) => void): void;
 };
 
-export function generatorOrPromise<T>(gen: T) {
+export function generatorOrPromise<T, E>(gen: T, extra?: E) {
   // @ts-ignore
   const typedGen = gen as AsyncGenerator<any, any, any>;
   return {
+    ...extra,
     generator: gen,
     next: typedGen.next,
     async then(cb: (result: any) => void) {

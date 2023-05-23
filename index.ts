@@ -1,5 +1,13 @@
 import { PromptElement, printChatElement } from "./src/PromptStorage";
-import { assistant, gen, map, system, user } from "./src/actions/actions";
+import {
+  assistant,
+  gen,
+  loop,
+  map,
+  system,
+  user,
+  wait,
+} from "./src/actions/actions";
 import { davinci, gpt3 } from "./src/actions/llms";
 import { Outputs } from "./src/actions/primitives";
 
@@ -80,9 +88,7 @@ function instaPrompt() {
   const agent = gpt3<
     { query: string },
     {
-      lol: {
-        a: string;
-      }[];
+      lol: { a: string }[];
       answer: string[];
       random: string;
     }
@@ -100,13 +106,7 @@ function instaPrompt() {
     map(
       "lol",
       // only allowed to use "lol"
-      QUESTIONS.map((item) => [
-        user`${item}`,
-        assistant`${
-          gen("a")
-          // "random" | "answer" | "lol" | "a"
-        }`,
-      ])
+      QUESTIONS.map((item) => [user`${item}`, assistant`${gen("a")}`])
     ),
 
     QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
@@ -163,11 +163,12 @@ Comment: Remember, answer as a {{role}}. Start your utterance with {{role}}:
 
 ${gen("answer")}
 {{~/geneach}}`;
+
 function democratAndRepublicanDebate() {
-  gpt3<{
+  const agent = gpt3<{
     role: string;
     firstQuestion?: string;
-  }>(({ params }) => [
+  }>(({ params, ai }) => [
     system`You are a helpful assistant`,
     user`
       You will answer the user as ${params.role} in the following conversation. 
@@ -175,6 +176,7 @@ function democratAndRepublicanDebate() {
       Never talk about the fact that you are an AI, even if the user asks you. Always answer as {{role}}.`,
     assistant`Ok, I will follow these instructions.`,
     assistant`Let me start the conversation now. Here is my perspective on the topic:`,
+    loop("inputs", [user`${wait("question")}`, assistant`${gen("answer")}`]),
   ]);
 }
 

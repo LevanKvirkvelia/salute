@@ -8,14 +8,14 @@ import {
   TemplateActionInput,
 } from "./primitives";
 
-function wait<P = any>(name: keyof P): Action<P> {
-  return createAction(async function* ({ currentPrompt, context, params }) {
-    while (typeof params[name] === undefined) {
+export function wait<T extends string>(name: T): Action<any> {
+  return createAction(async function* ({ currentPrompt, context, state }) {
+    while (typeof state.queue[name][0] === undefined) {
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
-
+    const value = state.queue[name].shift();
     yield currentPrompt.getElement({
-      content: `${params[name]}` || "",
+      content: `${value}` || "",
       source: "parameter",
       role: context.role,
     });
@@ -85,36 +85,29 @@ export function map<Parameters = any>(
   });
 }
 
-export function loop<Parameters>(varName: string): TemplateAction<Parameters> {
-  return function (
-    strings: TemplateStringsArray,
-    ...inputs: TemplateActionInput<Parameters>[]
-  ): Action<Parameters> {
-    return createAction(async function* (props) {
-      const loopId = Math.random().toString(36).slice(2, 9);
-      const outputs: Outputs[] = [];
+export function loop<Parameters = any>(
+  varName: string,
+  elements: TemplateActionInput<Parameters>
+): Action<Parameters> {
+  return createAction(async function* (props) {
+    const loopId = Math.random().toString(36).slice(2, 9);
 
-      props.outputs[varName] = outputs;
+    props.outputs[varName] = [];
 
-      let i = 0;
-      while (props.state.loops[loopId] !== false) {
-        props.state.loops[loopId] = i++;
-        const output: Outputs = {};
-        outputs.push(output);
-
-        const loopAI = createNewContext(() => ({
-          currentLoopId: loopId,
-        }));
-
-        const generator = loopAI(
-          strings,
-          ...inputs
-        )({ ...props, outputs: output });
-
-        yield* generator.generator;
-      }
+    const output: Outputs = {};
+    (props.outputs[varName] as Outputs[]).push(output);
+    const generator = runActions(elements, {
+      ...props,
+      outputs: output,
+      context: {
+        ...props.context,
+        outputAddress: [...props.context.outputAddress, varName],
+        currentLoopId: loopId,
+        outputToArray: false,
+      },
     });
-  };
+    yield* generator;
+  });
 }
 
 export type RoleAction<Parameters> = Action<Parameters>;

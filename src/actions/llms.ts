@@ -9,6 +9,7 @@ import { PromptElement, PromptStorage } from "../PromptStorage";
 import {
   Action,
   Outputs,
+  State,
   TemplateAction,
   TemplateActionInput,
   runActions,
@@ -105,6 +106,10 @@ function chatGptFactory(llmFunction: LLMCompletionFn) {
             })
           : messages;
 
+      const state: State = {
+        loops: {},
+        queue: {},
+      };
       async function* generator() {
         for (let i = 0; i < _messages.length; i++) {
           const generator = runActions(_messages[i], {
@@ -114,7 +119,7 @@ function chatGptFactory(llmFunction: LLMCompletionFn) {
             currentPrompt: prompt,
             context: { role: "none", outputAddress: [] },
             nextString: undefined,
-            state: { loops: {} },
+            state,
           });
 
           for await (const value of generator) {
@@ -125,7 +130,12 @@ function chatGptFactory(llmFunction: LLMCompletionFn) {
         return { prompt, outputs };
       }
 
-      return generatorOrPromise(generator());
+      function input(name: string, value: any) {
+        if (!state.queue[name]) state.queue[name] = [];
+        state.queue[name].push(value);
+      }
+
+      return generatorOrPromise(generator(), { input });
     };
   };
 }
@@ -162,7 +172,10 @@ export function davinci<
         params,
         currentPrompt: prompt,
         nextString: undefined,
-        state: { loops: {} },
+        state: {
+          loops: {},
+          queue: {},
+        },
       });
 
       for await (const value of generator.generator) {
