@@ -31,7 +31,29 @@ function vars<P = any>(name: keyof P): Action<P> {
   });
 }
 
-export const gen = <T extends string>(name: T, stop?: string): Action<any> => {
+export type GenOptions = {
+  stop?: string;
+  stopRegex?: string;
+  saveStopText?: string | boolean;
+  maxTokens?: number;
+  n?: number;
+  temperature?: number;
+  topP?: number;
+  logprobs?: number | null;
+  pattern?: string | null;
+  hidden?: boolean;
+  parse?: boolean;
+  listAppend?: boolean;
+  savePrompt?: string | boolean;
+  tokenHealing?: boolean | null;
+};
+
+export const gen = <T extends string>(
+  name: T,
+  options?: GenOptions
+): Action<any> => {
+  const { stop } = options || {};
+
   return createAction(async function* ({
     outputs,
     currentPrompt,

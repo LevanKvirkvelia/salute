@@ -1,6 +1,6 @@
 import { EventEmitter } from "eventemitter3";
 import { PromptElement, PromptStorage } from "../PromptStorage";
-import { RoleAction, ai, gen, map } from "../actions/actions";
+import { GenOptions, RoleAction, ai, gen, map } from "../actions/actions";
 import {
   Action,
   TemplateActionInput,
@@ -23,7 +23,7 @@ export type LLMCompletionFn = (props: {
   stop?: string;
 }) => PromiseOrCursor<string, string>;
 
-type GenFunc<T> = (name: T, stop?: string) => Action<any>;
+type GenFunc<T> = (name: T, options?: GenOptions) => Action<any>;
 type MapFunc<T> = <Parameters = any>(
   name: T,
   elements: TemplateActionInput<Parameters>[]
@@ -97,11 +97,7 @@ export const llmActionFactory = (completion: LLMCompletionFn) => {
       >();
       const prompt = new PromptStorage(false);
       const outputs = {} as O;
-
-      const state: State = {
-        loops: {},
-        queue: {},
-      };
+      const state: State = { loops: {}, queue: {} };
 
       async function* generator() {
         const generator = props({
