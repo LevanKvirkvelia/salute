@@ -57,7 +57,7 @@ function arrayInTextExample() {
 
       ${map(
         "answers",
-        QUESTIONS.map((item) => ai`Q: ${item}\nA:${gen("answer")}`)
+        QUESTIONS.map((item) => ai`Q: ${item}\nA:${gen("answer")}\n`)
       )}
 
       Thank You!

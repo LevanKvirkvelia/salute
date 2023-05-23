@@ -6,8 +6,10 @@ export async function renderAgent(
 ) {
   let lastRole = null;
   let lastElement: { outputs: Outputs } | null = null;
+  let hasRoles = true;
   for await (const a of gen) {
-    if (a.role !== lastRole && a.role !== "disabled") {
+    if (hasRoles && a.role === "none") hasRoles = false;
+    if (a.role !== lastRole && hasRoles) {
       console.log(`\n------------------ ${a.role} ------------------`);
       lastRole = a.role;
     }

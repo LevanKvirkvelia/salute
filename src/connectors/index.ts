@@ -157,7 +157,7 @@ export const typedActionFuncs = <O extends Outputs>(): ActionFuncs<O> => {
   };
 };
 
-export const createLLM = (func: CreateCompletionFunc) => {
+export const createLLM = (func: CreateCompletionFunc, isChat: boolean) => {
   const completion: LLMCompletionFn = (props: {
     prompt: PromptStorage;
     stop?: string;
@@ -187,6 +187,7 @@ export const createLLM = (func: CreateCompletionFunc) => {
   };
 
   llmWrapped.completion = completion;
+  llmWrapped.isChat = isChat;
 
   return llmWrapped;
 };

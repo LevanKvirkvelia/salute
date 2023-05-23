@@ -13,7 +13,7 @@ export type Context = {
   currentLoopId?: string;
   outputToArray?: boolean;
   outputAddress: string[];
-  llm: { completion: LLMCompletionFn };
+  llm: { completion: LLMCompletionFn; isChat: boolean };
   stream?: boolean;
 };
 

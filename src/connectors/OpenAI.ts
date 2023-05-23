@@ -59,7 +59,7 @@ export const createOpenAICompletion = (
     const stream = response.data as unknown as NodeJS.ReadableStream;
 
     return parseOpenAIStream(stream);
-  });
+  }, false);
 };
 
 export const createOpenAIChatCompletion = (
@@ -90,7 +90,7 @@ export const createOpenAIChatCompletion = (
     const stream = response.data as unknown as NodeJS.ReadableStream;
 
     return parseOpenAIStream(stream);
-  });
+  }, true);
 };
 
 export const gpt3 = createOpenAIChatCompletion(
