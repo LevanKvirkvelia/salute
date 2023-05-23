@@ -1,9 +1,14 @@
-import { Configuration, OpenAIApi } from "openai";
-import { system, user, assistant, gpt3, davinci } from "./src";
 import { PromptElement, printChatElement } from "./src/PromptStorage";
-
 import { Outputs } from "./src/actions/primitives";
-import { loop, wait, gen } from "./src/actions/actions";
+import {
+  loop,
+  wait,
+  gen,
+  assistant,
+  system,
+  user,
+} from "./src/actions/actions";
+import { davinci, gpt3 } from "./src/connectors/OpenAI";
 
 const AI_NAME = "Midjourney";
 
@@ -13,12 +18,6 @@ type PropsType = {
   chapter: number;
   verse: number;
 };
-
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_KEY,
-});
-
-const openAIApi = new OpenAIApi(configuration);
 
 function defaultExample() {
   const proverbAgent = davinci<
@@ -47,8 +46,6 @@ function defaultExample() {
     chapter: 11,
     verse: 14,
   });
-
-  // result.outputs.chapter;
 
   return result.generator;
 }
@@ -163,17 +160,20 @@ function jsonExample() {
 // {{~/geneach}}`;
 
 function democratAndRepublicanDebate() {
-  const agent = gpt3<{
-    role: string;
-    firstQuestion?: string;
-  }>(({ params, ai }) => [
+  const agent = gpt3<
+    {
+      role: string;
+      firstQuestion?: string;
+    },
+    { inputs: { answer: string }[] }
+  >(({ params, ai }) => [
     system`You are a helpful assistant`,
     user`
       You will answer the user as ${params.role} in the following conversation. 
       At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. 
-      Never talk about the fact that you are an AI, even if the user asks you. Always answer as {{role}}.`,
+      Never talk about the fact that you are an AI, even if the user asks you. Always answer as ${params.role}.`,
     assistant`Ok, I will follow these instructions.`,
-    assistant`Let me start the conversation now. Here is my perspective on the topic:`,
+
     loop("inputs", [user`${wait("question")}`, assistant`${gen("answer")}`]),
   ]);
 
@@ -185,12 +185,22 @@ function democratAndRepublicanDebate() {
     role: "republican",
   });
 
-  renderAgent(republican.generator);
-
   republican.input(
     "question",
     "What is your opinion on the topic of abortion?"
   );
+
+  republican.events.on("answer", (answer) => {
+    democrat.input("question", answer);
+  });
+
+  democrat.events.on("answer", (answer) => {
+    republican.input("question", answer);
+  });
+
+  republican.then(() => {});
+
+  renderAgent(democrat.generator);
 }
 
 async function renderAgent(
@@ -214,7 +224,8 @@ async function renderAgent(
 async function main() {
   // await renderAgent(arrayInTextExample().generator);
   // await renderAgent(instaPrompt().generator);
-  await renderAgent(defaultExample());
+  // await renderAgent(defaultExample());
+  democratAndRepublicanDebate();
 }
 
 main();

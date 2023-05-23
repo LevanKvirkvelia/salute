@@ -1,11 +1,9 @@
+import { EventEmitter } from "eventemitter3";
 import merge from "ts-deepmerge";
 import { PromptElement, PromptStorage, Roles } from "../PromptStorage";
 import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
 import { LLMCompletionFn } from "./llms";
 
-// export type
-
-// export type Outputs = { [key: string]: string | string[] | Outputs[] };
 export type Outputs = Record<string, string | string[] | Outputs[]>;
 
 export type Context = {
@@ -25,6 +23,7 @@ export type State = {
 };
 
 export type ActionProps<Parameters> = {
+  events: EventEmitter<any, any>;
   context: Readonly<Context>;
   state: State;
   params: Parameters;
@@ -136,17 +135,6 @@ export type TemplateAction<Parameters> = (
   strings: TemplateStringsArray,
   ...inputs: TemplateActionInput<Parameters>[]
 ) => Action<Parameters>;
-
-// export function createTemplateAction<Parameters = any>(
-//   generator: (
-//     props: ActionProps<Parameters>
-//   ) => AsyncGenerator<PromptElement, void, unknown>,
-//   updateProps?: (props: ActionProps<Parameters>) => ActionProps<Parameters>
-// ): Action<Parameters> {
-//   return function (props) {
-//     return generatorOrPromise(generator(updateProps?.(props) || props));
-//   };
-// }
 
 export function createNewContext<Parameters>(
   getContext: () => Partial<Context>

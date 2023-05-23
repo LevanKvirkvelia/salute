@@ -4,13 +4,12 @@ import {
   createNewContext,
   Outputs,
   runActions,
-  TemplateAction,
   TemplateActionInput,
 } from "./primitives";
 
 export function wait<T extends string>(name: T): Action<any> {
   return createAction(async function* ({ currentPrompt, context, state }) {
-    while (typeof state.queue[name][0] === undefined) {
+    while (typeof state.queue[name]?.[0] === "undefined") {
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
     const value = state.queue[name].shift();
@@ -39,6 +38,7 @@ export const gen = <T extends string>(name: T, stop?: string): Action<any> => {
     completion,
     nextString,
     context,
+    events,
   }) {
     const llmStream = completion({
       prompt: currentPrompt,
@@ -55,6 +55,7 @@ export const gen = <T extends string>(name: T, stop?: string): Action<any> => {
       if (!Array.isArray(outputs[name])) outputs[name] = [];
       (outputs[name] as string[]).push(fullString);
     }
+    events.emit(name, fullString);
   });
 };
 
@@ -94,19 +95,21 @@ export function loop<Parameters = any>(
 
     props.outputs[varName] = [];
 
-    const output: Outputs = {};
-    (props.outputs[varName] as Outputs[]).push(output);
-    const generator = runActions(elements, {
-      ...props,
-      outputs: output,
-      context: {
-        ...props.context,
-        outputAddress: [...props.context.outputAddress, varName],
-        currentLoopId: loopId,
-        outputToArray: false,
-      },
-    });
-    yield* generator;
+    while (props.state.loops[loopId] !== false) {
+      const output: Outputs = {};
+      (props.outputs[varName] as Outputs[]).push(output);
+      const generator = runActions(elements, {
+        ...props,
+        outputs: output,
+        context: {
+          ...props.context,
+          outputAddress: [...props.context.outputAddress, varName],
+          currentLoopId: loopId,
+          outputToArray: false,
+        },
+      });
+      yield* generator;
+    }
   });
 }
 
