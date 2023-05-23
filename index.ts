@@ -1,13 +1,6 @@
 import { PromptElement, printChatElement } from "./src/PromptStorage";
 import { Outputs } from "./src/actions/primitives";
-import {
-  loop,
-  wait,
-  gen,
-  assistant,
-  system,
-  user,
-} from "./src/actions/actions";
+import { loop, wait, assistant, system, user } from "./src/actions/actions";
 import { davinci, gpt3 } from "./src/connectors/OpenAI";
 
 type PropsType = {
@@ -121,12 +114,12 @@ function jsonExample() {
     json
     {
         "description": "${gen("description")}",
-        "name": "${gen("name", '"')}",
-        "age": ${gen("age", ",")},
-        "class": "${gen("class", '"')}",
-        "mantra": "${gen("mantra", '"')}",
-        "strength": ${gen("strength", ",")},
-        "items": [${[0, 0, 0].map(() => ai`"${gen("item", '"')}",`)}]
+        "name": "${gen("name", { stop: '"' })}",
+        "age": ${gen("age", { stop: "," })},
+        "class": "${gen("class", { stop: '"' })}",
+        "mantra": "${gen("mantra", { stop: '"' })}",
+        "strength": ${gen("strength", { stop: "," })},
+        "items": [${[0, 0, 0].map(() => ai`"${gen("item", { stop: '"' })}",`)}]
     }`
   );
 
@@ -137,7 +130,7 @@ function democratAndRepublicanDebate() {
   const agent = gpt3<
     { role: string; firstQuestion?: string },
     { inputs: { answer: string }[] }
-  >(({ params, ai }) => [
+  >(({ params, ai, gen }) => [
     system`You are a helpful assistant`,
     user`
       You will answer the user as ${params.role} in the following conversation. 
