@@ -30,7 +30,7 @@ type MapFunc<T> = <Parameters = any>(
 
 // type
 type SubTypeKeysOnly<O extends Outputs> = {
-  [K in keyof O]: O[K] extends Outputs[] ? K : never;
+  [K in keyof O]: O[K] extends Outputs[] ? K : unknown;
 }[keyof O];
 
 type NonObjectKeys<T> = {
@@ -49,14 +49,6 @@ type RecursiveNonObjectKeys<T> = T extends string | string[]
         }[keyof T]
       | NonObjectKeys<T>;
 
-type Example = {
-  lol: { a: string }[];
-  random: string;
-  answer: string[];
-};
-
-type ExampleKeys = RecursiveNonObjectKeys<Example>;
-
 type ActionFuncs<O extends Outputs> = {
   gen: GenFunc<RecursiveNonObjectKeys<O>>;
   map: MapFunc<SubTypeKeysOnly<O>>;
@@ -64,7 +56,7 @@ type ActionFuncs<O extends Outputs> = {
 
 // type GenFunc = Exclude<Parameters<typeof gen>>;
 
-type LLMPromptFunction<Parameters, O extends Outputs = Outputs> = (
+export type LLMPromptFunction<Parameters, O extends Outputs> = (
   props: {
     ai: TemplateAction<Parameters>;
     params: Parameters;
@@ -77,6 +69,75 @@ type LLMPromptArrayFunction<Parameters, O extends Outputs> = (
     params: Parameters;
   } & ActionFuncs<O>
 ) => (RoleAction<Parameters>[][] | RoleAction<Parameters>)[];
+
+// const
+
+type CreateCompletionFunc = (props: {
+  prompt: PromptStorage;
+  stop?: string;
+}) => Promise<NodeJS.ReadableStream>;
+
+export const createModelCompletion = (
+  func: CreateCompletionFunc
+): LLMCompletionFn => {
+  const returnFunc = (props: { prompt: PromptStorage; stop?: string }) => {
+    async function* generator() {
+      let fullString = "";
+
+      const stream = await func(props);
+
+      for await (const chunk of stream) {
+        fullString += chunk.toString();
+        yield chunk.toString();
+      }
+
+      return fullString;
+    }
+
+    return generatorOrPromise(generator());
+  };
+
+  return returnFunc;
+};
+
+const llmFactory = (completion: LLMCompletionFn) => {
+  function llm<
+    Parameters extends AnyObject | undefined = any,
+    O extends Outputs = Outputs
+  >(props: LLMPromptFunction<Parameters, O>) {
+    return (params: Parameters) => {
+      const prompt = new PromptStorage(false);
+      const outputs = {} as O;
+
+      async function* generator() {
+        const generator = props({
+          ai: ai as unknown as TemplateAction<Parameters>,
+          params,
+          ...typedActionFuncs<O>(),
+        })({
+          completion: completion,
+          outputs,
+          context: { role: "none", outputAddress: [] },
+          params,
+          currentPrompt: prompt,
+          nextString: undefined,
+          state: { loops: {}, queue: {} },
+        });
+
+        for await (const value of generator.generator) {
+          prompt.pushElement(value);
+          yield { ...value, prompt, outputs };
+        }
+
+        return { prompt, outputs };
+      }
+
+      return generatorOrPromise(generator());
+    };
+  }
+
+  return llm;
+};
 
 function chatGptFactory(llmFunction: LLMCompletionFn) {
   return function <
@@ -179,3 +240,11 @@ export function davinci<
     return generatorOrPromise(generator());
   };
 }
+
+export const createCompletion = (func: CreateCompletionFunc) => {
+  return llmFactory(createModelCompletion(func));
+};
+
+export const createChatCompletion = (func: CreateCompletionFunc) => {
+  return chatGptFactory(createModelCompletion(func));
+};

@@ -1,15 +1,9 @@
+import { Configuration, OpenAIApi } from "openai";
+import { system, user, assistant, gpt3, davinci } from "./src";
 import { PromptElement, printChatElement } from "./src/PromptStorage";
-import {
-  assistant,
-  gen,
-  loop,
-  map,
-  system,
-  user,
-  wait,
-} from "./src/actions/actions";
-import { davinci, gpt3 } from "./src/actions/llms";
+
 import { Outputs } from "./src/actions/primitives";
+import { loop, wait, gen } from "./src/actions/actions";
 
 const AI_NAME = "Midjourney";
 
@@ -19,6 +13,12 @@ type PropsType = {
   chapter: number;
   verse: number;
 };
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_KEY,
+});
+
+const openAIApi = new OpenAIApi(configuration);
 
 function defaultExample() {
   const proverbAgent = davinci<
@@ -62,7 +62,7 @@ function arrayInTextExample() {
   ];
 
   const proverbAgent = davinci(
-    ({ ai }) => ai`
+    ({ ai, map, gen }) => ai`
       Answer the questions in a single sentence.
 
       ${map(
@@ -118,7 +118,7 @@ function instaPrompt() {
 
 function jsonExample() {
   const proverbAgent = davinci(
-    ({ ai }) => ai`
+    ({ ai, gen }) => ai`
     The following is a character profile for an RPG game in JSON format.
 
     json
@@ -136,32 +136,31 @@ function jsonExample() {
   return proverbAgent({}).generator;
 }
 
-`{{#system~}}
-You are a helpful assistant
-{{~/system}}
-                                           
-{{#user~}}
-You will answer the user as {{role}} in the following conversation. At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. Never talk about the fact that you are an AI, even if the user asks you. Always answer as {{role}}.
-{{#if first_question}}You can also start the conversation.{{/if}}
-{{~/user}}
-                                           
-{{~! The assistant either starts the conversation or not, depending on if this is the first or second agent }}
-{{#assistant~}}
-Ok, I will follow these instructions.
-{{#if first_question}}Let me start the conversation now:
-{{role}}: {{first_question}}{{/if}}
-{{~/assistant}}
+// `{{#system~}}
+// You are a helpful assistant
+// {{~/system}}
 
-{{~! Then the conversation unrolls }}
-{{~#geneach 'conversation' stop=False}}
-{{#user~}}
-User: {{set 'this.input' (await 'input')}}
-Comment: Remember, answer as a {{role}}. Start your utterance with {{role}}:
-{{~/user}}
+// {{#user~}}
+// You will answer the user as {{role}} in the following conversation. At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. Never talk about the fact that you are an AI, even if the user asks you. Always answer as {{role}}.
+// {{#if first_question}}You can also start the conversation.{{/if}}
+// {{~/user}}
 
+// {{~! The assistant either starts the conversation or not, depending on if this is the first or second agent }}
+// {{#assistant~}}
+// Ok, I will follow these instructions.
+// {{#if first_question}}Let me start the conversation now:
+// {{role}}: {{first_question}}{{/if}}
+// {{~/assistant}}
 
-${gen("answer")}
-{{~/geneach}}`;
+// {{~! Then the conversation unrolls }}
+// {{~#geneach 'conversation' stop=False}}
+// {{#user~}}
+// User: {{set 'this.input' (await 'input')}}
+// Comment: Remember, answer as a {{role}}. Start your utterance with {{role}}:
+// {{~/user}}
+
+// ${gen("answer")}
+// {{~/geneach}}`;
 
 function democratAndRepublicanDebate() {
   const agent = gpt3<{

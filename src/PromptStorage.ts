@@ -46,33 +46,30 @@ export class PromptStorage extends Array<Message> {
     } as PromptElement;
   }
 
-  toOpenAIPrompt() {
-    if (this.roles) {
-      const messages: ChatCompletionRequestMessage[] = [];
-      for (const rolePrompt of this) {
-        rolePrompt.forEach((promptElement, i) => {
-          if (
-            promptElement.role === "none" ||
-            promptElement.role === "disabled"
-          )
-            throw new Error("Role cannot be 'none' or 'disabled'");
+  toString(): string {
+    return this.map((m) => {
+      return m.map((promptElement) => promptElement.content).join("");
+    }).join("");
+  }
 
-          if (i === 0) {
-            messages.push({
-              content: promptElement.content,
-              role: promptElement.role,
-            });
-          } else {
-            messages[messages.length - 1].content += promptElement.content;
-          }
-        });
-      }
-      return messages;
-    } else {
-      return this.map((mes) => {
-        return mes.map((promptElement) => promptElement.content).join("");
-      }).join("");
+  toChatCompletion() {
+    const messages: ChatCompletionRequestMessage[] = [];
+    for (const rolePrompt of this) {
+      rolePrompt.forEach((promptElement, i) => {
+        if (promptElement.role === "none" || promptElement.role === "disabled")
+          throw new Error("Role cannot be 'none' or 'disabled'");
+
+        if (i === 0) {
+          messages.push({
+            content: promptElement.content,
+            role: promptElement.role,
+          });
+        } else {
+          messages[messages.length - 1].content += promptElement.content;
+        }
+      });
     }
+    return messages;
   }
 }
 

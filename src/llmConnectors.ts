@@ -45,7 +45,7 @@ export const davinciCompletion: LLMCompletionFn = function (props) {
     const response = await openAIApi.createCompletion(
       {
         model: "text-davinci-003",
-        prompt: props.prompt.toOpenAIPrompt(),
+        prompt: props.prompt.toChatCompletion(),
         temperature: 0,
         stream: true,
         stop: props.stop,
@@ -74,7 +74,7 @@ export const chatGPT3Completion: LLMCompletionFn = function (props) {
       {
         model: "gpt-3.5-turbo",
         messages:
-          props.prompt.toOpenAIPrompt() as ChatCompletionRequestMessage[],
+          props.prompt.toChatCompletion() as ChatCompletionRequestMessage[],
         stream: true,
         temperature: 1,
       },
@@ -102,7 +102,7 @@ export const chatGPT4Completion: LLMCompletionFn = function (props) {
       {
         model: "gpt-4",
         messages:
-          props.prompt.toOpenAIPrompt() as ChatCompletionRequestMessage[],
+          props.prompt.toChatCompletion() as ChatCompletionRequestMessage[],
         stream: true,
         temperature: 1,
       },
