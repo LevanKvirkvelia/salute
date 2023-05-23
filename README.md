@@ -3,8 +3,9 @@
 
 
 <div align="center"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github-production-user-asset-6210df.s3.amazonaws.com/10355479/240139867-22162b29-5efd-4efc-b2ce-cc94f99b8aad.png">
-  <img alt="guidance" src="https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/22162b29-5efd-4efc-b2ce-cc94f99b8aad" width="150">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/9ee70330-5860-4033-b93b-ed8b721800e6">
+  
+  <img alt="guidance" src="https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/9ee70330-5860-4033-b93b-ed8b721800e6" width="150">
 </picture></div>
 <br/>
 
