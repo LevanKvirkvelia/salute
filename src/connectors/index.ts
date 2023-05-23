@@ -218,7 +218,7 @@ const createModelCompletion = (func: CreateCompletionFunc): LLMCompletionFn => {
       return fullString;
     }
 
-    return generatorOrPromise(generator());
+    return generator();
   };
 
   return returnFunc;

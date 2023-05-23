@@ -67,7 +67,7 @@ export const gen = <T extends string>(
     });
     let fullString = "";
 
-    for await (const result of llmStream.generator) {
+    for await (const result of llmStream) {
       fullString += result;
       yield currentPrompt.getLLMElement(result);
     }
