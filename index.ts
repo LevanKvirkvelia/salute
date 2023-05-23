@@ -82,8 +82,7 @@ function jsonExample() {
         "mantra": "${gen("mantra", { stop: '"' })}",
         "strength": ${gen("strength", { stop: "," })},
         "items": [${[0, 0, 0].map(() => ai`"${gen("item", { stop: '"' })}",`)}]
-    }`,
-    {}
+    }`
   );
 
   return proverbAgent({}).generator;
