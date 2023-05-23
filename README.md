@@ -1,5 +1,13 @@
 # Sensei
 
+
+
+<div align="center"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github-production-user-asset-6210df.s3.amazonaws.com/10355479/240139867-22162b29-5efd-4efc-b2ce-cc94f99b8aad.png">
+  <img alt="guidance" src="https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/22162b29-5efd-4efc-b2ce-cc94f99b8aad" width="150">
+</picture></div>
+<br/>
+
 A library to let you write powerful prompts heavily inspired by [guidance](https://github.com/microsoft/guidance) but with good syntax.
 
 The core idea here is to leverage the power of a tool like guidance but giving you the default language features for better control flow, iteration and overall better syntax.
