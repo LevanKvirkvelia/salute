@@ -1,5 +1,5 @@
 import { EventEmitter } from "eventemitter3";
-import { PromptStorage } from "../PromptStorage";
+import { PromptElement, PromptStorage } from "../PromptStorage";
 import { RoleAction, ai, gen, map } from "../actions/actions";
 import {
   Action,
@@ -71,17 +71,37 @@ type LLMPromptArrayFunction<Parameters, O extends Outputs> = (
 
 // const
 
+export type LLMAction<T extends AnyObject, O extends Outputs> = (
+  props: T
+) => PromiseOrCursor<
+  PromptElement & {
+    prompt: PromptStorage;
+    outputs: O;
+  },
+  { prompt: PromptStorage; outputs: O }
+> & {
+  events: EventEmitter<Extract<RecursiveNonObjectKeys<O>, string>>;
+  input(name: string, value: any): void;
+};
+
 export const llmActionFactory = (completion: LLMCompletionFn) => {
   function llm<
     Parameters extends AnyObject | undefined = any,
     O extends Outputs = Outputs
-  >(props: LLMPromptFunction<Parameters, O>) {
+  >(
+    props: LLMPromptFunction<Parameters, O>
+  ): LLMAction<Exclude<Parameters, undefined>, O> {
     return (params: Parameters) => {
       const events = new EventEmitter<
         Extract<RecursiveNonObjectKeys<O>, string>
       >();
       const prompt = new PromptStorage(false);
       const outputs = {} as O;
+
+      const state: State = {
+        loops: {},
+        queue: {},
+      };
 
       async function* generator() {
         const generator = props({
@@ -96,7 +116,7 @@ export const llmActionFactory = (completion: LLMCompletionFn) => {
           params,
           currentPrompt: prompt,
           nextString: undefined,
-          state: { loops: {}, queue: {} },
+          state,
         });
 
         for await (const value of generator.generator) {
@@ -107,7 +127,12 @@ export const llmActionFactory = (completion: LLMCompletionFn) => {
         return { prompt, outputs };
       }
 
-      return generatorOrPromise(generator(), { events });
+      function input(name: string, value: any) {
+        if (!state.queue[name]) state.queue[name] = [];
+        state.queue[name].push(value);
+      }
+
+      return generatorOrPromise(generator(), { events, input });
     };
   }
 
@@ -122,7 +147,7 @@ export function chatGptFactory(llmFunction: LLMCompletionFn) {
     messages:
       | (RoleAction<Parameters> | RoleAction<Parameters>[][])[]
       | LLMPromptArrayFunction<Parameters, O>
-  ) {
+  ): LLMAction<Exclude<Parameters, undefined>, O> {
     return (parameters: Parameters) => {
       const events = new EventEmitter<
         Extract<RecursiveNonObjectKeys<O>, string>
