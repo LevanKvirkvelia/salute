@@ -22,16 +22,6 @@ export function wait<T extends string>(name: T): Action<any> {
   });
 }
 
-function vars<P = any>(name: keyof P): Action<P> {
-  return createAction(async function* ({ currentPrompt, context, params }) {
-    yield currentPrompt.getElement({
-      content: `${params[name]}` || "",
-      source: "parameter",
-      role: context.role,
-    });
-  });
-}
-
 export type GenOptions = {
   stop?: string;
   stopRegex?: string;
@@ -50,7 +40,7 @@ export type GenOptions = {
 
 export const gen = <T extends string>(
   name: T,
-  options?: Omit<GenOptions, "stream">
+  options?: GenOptions
 ): Action<any> => {
   const { stop } = options || {};
 
