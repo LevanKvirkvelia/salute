@@ -1,9 +1,8 @@
 import { EventEmitter } from "eventemitter3";
 import merge from "ts-deepmerge";
 import { PromptElement, PromptStorage, Roles } from "../PromptStorage";
-import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
 import { LLMCompletionFn } from "../connectors";
-import { GenOptions } from "./actions";
+import { isPromise } from "../helpers";
 
 export type Outputs = Record<string, string | string[] | Outputs[]>;
 
@@ -36,7 +35,7 @@ export type ActionProps<Parameters> = {
 
 export type Action<Parameters, Return = void> = (
   props: ActionProps<Parameters>
-) => PromiseOrCursor<PromptElement, Return>;
+) => AsyncGenerator<PromptElement, Return>;
 
 export function createAction<Parameters = any>(
   generator: (
@@ -47,27 +46,31 @@ export function createAction<Parameters = any>(
   ) => props
 ): Action<Parameters> {
   return function (props) {
-    return generatorOrPromise(generator(updateProps(props)));
+    return generator(updateProps(props));
   };
 }
 
 export type TemplateActionBasicInput =
   | string
   | number
-  | PromiseOrCursor<PromptElement, void>;
+  | AsyncGenerator<PromptElement, void>;
 export type TemplateActionInput<Parameters> =
+  | ((
+      props: ActionProps<Parameters>
+    ) =>
+      | TemplateActionInput<Parameters>
+      | Promise<TemplateActionInput<Parameters>>)
   | TemplateActionBasicInput
   | Action<Parameters>
-  | ((props: ActionProps<Parameters>) => string | number)
   | TemplateActionInput<Parameters>[];
 
 export async function* runActions<Parameters>(
   action: TemplateActionInput<Parameters>,
   props: ActionProps<Parameters>
 ): AsyncGenerator<PromptElement, void, unknown> {
-  const element = typeof action === "function" ? action(props) : action;
   const { context, state } = props;
 
+  const element = typeof action === "function" ? action(props) : action;
   if (Array.isArray(element)) {
     const currentLoopId = Math.random().toString(36).slice(2);
     let i = 0;
@@ -93,8 +96,13 @@ export async function* runActions<Parameters>(
       source: typeof action === "function" ? "parameter" : "constant",
       role: context.role,
     };
+  } else if (typeof element === "function") {
+    yield* runActions(element, props);
+  } else if (isPromise<TemplateActionInput<Parameters>>(element)) {
+    const resolvedElement = await element;
+    yield* runActions(resolvedElement, props);
   } else {
-    yield* element.generator;
+    yield* element;
   }
 }
 

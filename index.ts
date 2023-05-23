@@ -2,6 +2,7 @@ import { PromptElement, printChatElement } from "./src/PromptStorage";
 import { Outputs } from "./src/actions/primitives";
 import { loop, wait, assistant, system, user } from "./src/actions/actions";
 import { davinci, gpt3 } from "./src/connectors/OpenAI";
+import { renderAgent } from "./src/helpers";
 
 type PropsType = {
   proverb: string;
@@ -65,47 +66,6 @@ function arrayInTextExample() {
   return proverbAgent({}).generator;
 }
 
-const AI_NAME = "Midjourney";
-
-function instaPrompt() {
-  const QUESTIONS = [
-    `Main elements with specific imagery details`,
-    `Next, describe the environment`,
-    `Now, provide the mood / feelings and atmosphere of the scene`,
-    `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
-  ];
-
-  const agent = gpt3<
-    { query: string },
-    {
-      lol: { a: string }[];
-      answer: string[];
-      random: string;
-    }
-  >(({ params, gen, map }) => [
-    system`
-      Act as a prompt generator for a generative AI called "${AI_NAME}". 
-      ${AI_NAME} AI generates images based on given prompts.
-    `,
-    user`
-      My query is:
-      Generate descriptions about my query, in realistic photographic style, for an Instagram post. 
-      The answer should be one sentence long, starting directly with the description.
-    `,
-
-    map(
-      "lol",
-      QUESTIONS.map((item) => [user`${item}`, assistant`${gen("a")}`])
-    ),
-
-    QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
-  ]);
-
-  return agent({
-    query: `A picture of a dog`,
-  }).generator;
-}
-
 function jsonExample() {
   const proverbAgent = davinci(
     ({ ai, gen }) => ai`
@@ -126,65 +86,10 @@ function jsonExample() {
   return proverbAgent({}).generator;
 }
 
-function democratAndRepublicanDebate() {
-  const agent = gpt3<
-    { role: string; firstQuestion?: string },
-    { inputs: { answer: string }[] }
-  >(({ params, ai, gen }) => [
-    system`You are a helpful assistant`,
-    user`
-      You will answer the user as ${params.role} in the following conversation. 
-      At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. 
-      Never talk about the fact that you are an AI, even if the user asks you. Always answer as ${params.role}.`,
-    assistant`Ok, I will follow these instructions.`,
-
-    loop("inputs", [user`${wait("question")}`, assistant`${gen("answer")}`]),
-  ]);
-
-  const democrat = agent({ role: "democrat" });
-  const republican = agent({ role: "republican" });
-
-  republican.input(
-    "question",
-    "What is your opinion on the topic of abortion?"
-  );
-
-  republican.events.on("answer", (answer) => {
-    democrat.input("question", answer);
-  });
-
-  democrat.events.on("answer", (answer) => {
-    republican.input("question", answer);
-  });
-
-  republican.then(() => {});
-
-  renderAgent(democrat.generator);
-}
-
-async function renderAgent(
-  gen: AsyncGenerator<PromptElement & { outputs: Outputs }>
-) {
-  let lastRole = null;
-  let lastElement: { outputs: Outputs } | null = null;
-  for await (const a of gen) {
-    if (a.role !== lastRole && a.role !== "disabled") {
-      console.log(`\n------------------ ${a.role} ------------------`);
-      lastRole = a.role;
-    }
-    printChatElement(a);
-    lastElement = a;
-  }
-
-  console.log("\n----------------------------------------");
-  console.log(lastElement?.outputs);
-}
-
 async function main() {
   // await renderAgent(arrayInTextExample().generator);
   // await renderAgent(instaPrompt().generator);
   await renderAgent(defaultExample());
-  // democratAndRepublicanDebate();
 }
 
 main();

@@ -22,7 +22,7 @@ export type LLMCompletionFn = (
   props: {
     prompt: PromptStorage;
   } & GenOptions
-) => PromiseOrCursor<string, string>;
+) => AsyncGenerator<string, string>;
 
 type GenFunc<T> = (name: T, options?: GenOptions) => Action<any>;
 type MapFunc<T> = <Parameters = any>(
@@ -116,7 +116,7 @@ export const llmActionFactory = (completion: LLMCompletionFn) => {
           state,
         });
 
-        for await (const value of generator.generator) {
+        for await (const value of generator) {
           prompt.pushElement(value);
           yield { ...value, prompt, outputs };
         }
