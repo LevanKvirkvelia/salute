@@ -17,13 +17,6 @@ import {
 
 export type AnyObject = Record<string, any>;
 
-export type LLMAction<T extends AnyObject, O extends Outputs> = (
-  props: T
-) => PromiseOrCursor<
-  PromptElement & { prompt: PromptStorage; outputs: O },
-  { prompt: PromptStorage; outputs: O }
->;
-
 export type LLMCompletionFn = (props: {
   prompt: PromptStorage;
   stop?: string;
@@ -93,7 +86,7 @@ function chatGptFactory(llmFunction: LLMCompletionFn) {
     messages:
       | (RoleAction<Parameters> | RoleAction<Parameters>[][])[]
       | LLMPromptArrayFunction<Parameters, O>
-  ): LLMAction<Exclude<Parameters, undefined>, O> {
+  ) {
     return (parameters: Parameters) => {
       const prompt = new PromptStorage();
       const outputs = {} as O;
@@ -135,6 +128,8 @@ function chatGptFactory(llmFunction: LLMCompletionFn) {
         state.queue[name].push(value);
       }
 
+      // onNewOputput
+
       return generatorOrPromise(generator(), { input });
     };
   };
@@ -153,9 +148,7 @@ export const typedActionFuncs = <O extends Outputs>(): ActionFuncs<O> => {
 export function davinci<
   Parameters extends AnyObject | undefined = any,
   O extends Outputs = Outputs
->(
-  props: LLMPromptFunction<Parameters, O>
-): LLMAction<Exclude<Parameters, undefined>, O> {
+>(props: LLMPromptFunction<Parameters, O>) {
   return (params: Parameters) => {
     const prompt = new PromptStorage(false);
     const outputs = {} as O;
@@ -172,10 +165,7 @@ export function davinci<
         params,
         currentPrompt: prompt,
         nextString: undefined,
-        state: {
-          loops: {},
-          queue: {},
-        },
+        state: { loops: {}, queue: {} },
       });
 
       for await (const value of generator.generator) {

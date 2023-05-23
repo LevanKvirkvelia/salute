@@ -105,7 +105,6 @@ function instaPrompt() {
 
     map(
       "lol",
-      // only allowed to use "lol"
       QUESTIONS.map((item) => [user`${item}`, assistant`${gen("a")}`])
     ),
 
@@ -178,6 +177,21 @@ function democratAndRepublicanDebate() {
     assistant`Let me start the conversation now. Here is my perspective on the topic:`,
     loop("inputs", [user`${wait("question")}`, assistant`${gen("answer")}`]),
   ]);
+
+  const democrat = agent({
+    role: "democrat",
+  });
+
+  const republican = agent({
+    role: "republican",
+  });
+
+  renderAgent(republican.generator);
+
+  republican.input(
+    "question",
+    "What is your opinion on the topic of abortion?"
+  );
 }
 
 async function renderAgent(
