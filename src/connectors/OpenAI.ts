@@ -5,7 +5,7 @@ import {
   CreateCompletionRequest,
   OpenAIApi,
 } from "openai";
-import { createChatCompletion, createCompletion } from ".";
+import { createLLM } from ".";
 
 export async function* parseOpenAIStream(stream: NodeJS.ReadableStream) {
   let content = "";
@@ -41,7 +41,7 @@ export const createOpenAICompletion = (
 
   const openAIApi = new OpenAIApi(configuration);
 
-  return createCompletion(async (props) => {
+  return createLLM(async (props) => {
     const response = await openAIApi.createCompletion(
       {
         ...options,
@@ -73,7 +73,7 @@ export const createOpenAIChatCompletion = (
 
   const openAIApi = new OpenAIApi(configuration);
 
-  return createChatCompletion(async (props) => {
+  return createLLM(async (props) => {
     const response = await openAIApi.createChatCompletion(
       {
         ...options,
@@ -104,6 +104,14 @@ export const gpt4 = createOpenAIChatCompletion(
 );
 
 export const davinci = createOpenAICompletion(
-  { model: "davinci" },
-  { apiKey: process.env.OPENAI_KEY }
+  { model: "text-davinci-003" },
+  {
+    apiKey: process.env.OPENAI_KEY,
+    basePath: "https://oai.hconeai.com/v1",
+    baseOptions: {
+      headers: {
+        "Helicone-Auth": "Bearer sk-s6usw5y-zaqea2i-xgtvt3y-ohh4w6a",
+      },
+    },
+  }
 );

@@ -3,7 +3,7 @@ import { ChatCompletionRequestMessage } from "openai";
 
 export type PromptSources = "llm" | "parameter" | "constant" | "prompt";
 
-export type Roles = "user" | "assistant" | "system" | "none" | "disabled";
+export type Roles = "user" | "assistant" | "system" | "none";
 export type PromptElement = {
   content: string;
   source: PromptSources;
@@ -13,18 +13,12 @@ export type PromptElement = {
 export type Message = PromptElement[];
 
 export class PromptStorage extends Array<Message> {
-  constructor(private roles: boolean = true) {
-    super();
-  }
-
   pushElement(promptElement: PromptElement) {
     // console.log("pushing element", promptElement);
     const lastRolePrompt = this[this.length - 1];
 
     const lastRolePromptRole =
       lastRolePrompt?.[lastRolePrompt.length - 1]?.role;
-
-    if (!this.roles) promptElement.role = "disabled";
 
     if (!lastRolePrompt || lastRolePromptRole !== promptElement.role) {
       super.push([promptElement]);
@@ -41,7 +35,7 @@ export class PromptStorage extends Array<Message> {
   getLLMElement(generated: string) {
     return {
       content: generated,
-      role: this.roles ? "assistant" : "none",
+      role: "assistant",
       source: "llm",
     } as PromptElement;
   }
@@ -56,7 +50,7 @@ export class PromptStorage extends Array<Message> {
     const messages: ChatCompletionRequestMessage[] = [];
     for (const rolePrompt of this) {
       rolePrompt.forEach((promptElement, i) => {
-        if (promptElement.role === "none" || promptElement.role === "disabled")
+        if (promptElement.role === "none")
           throw new Error("Role cannot be 'none' or 'disabled'");
 
         if (i === 0) {

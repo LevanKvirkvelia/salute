@@ -1,4 +1,5 @@
 import { system, user, assistant } from "../src/actions/actions";
+import { llm } from "../src/connectors";
 import { gpt3 } from "../src/connectors/OpenAI";
 import { renderAgent } from "../src/helpers";
 

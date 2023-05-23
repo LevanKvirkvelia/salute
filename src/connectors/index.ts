@@ -8,6 +8,7 @@ import {
   TemplateAction,
   State,
   runActions,
+  Context,
 } from "../actions/primitives";
 import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
 
@@ -21,10 +22,14 @@ export type AnyObject = Record<string, any>;
 export type LLMCompletionFn = (
   props: {
     prompt: PromptStorage;
+    stream: boolean;
   } & GenOptions
 ) => AsyncGenerator<string, string>;
 
-type GenFunc<T> = (name: T, options?: GenOptions) => Action<any>;
+type GenFunc<T> = (
+  name: T,
+  options?: Omit<GenOptions, "stream">
+) => Action<any>;
 type MapFunc<T> = <Parameters = any>(
   name: T,
   elements: TemplateActionInput<Parameters>[]
@@ -72,7 +77,7 @@ type LLMPromptArrayFunction<Parameters, O extends Outputs> = (
 
 // const
 
-export type LLMAction<T extends AnyObject, O extends Outputs> = (
+export type LLMActionResult<T extends AnyObject, O extends Outputs> = (
   props: T
 ) => PromiseOrCursor<
   PromptElement & {
@@ -85,33 +90,43 @@ export type LLMAction<T extends AnyObject, O extends Outputs> = (
   input(name: string, value: any): void;
 };
 
-export const llmActionFactory = (completion: LLMCompletionFn) => {
-  function llm<
-    Parameters extends AnyObject | undefined = any,
-    O extends Outputs = Outputs
-  >(
-    props: LLMPromptFunction<Parameters, O>
-  ): LLMAction<Exclude<Parameters, undefined>, O> {
-    return (params: Parameters) => {
-      const events = new EventEmitter<
-        Extract<RecursiveNonObjectKeys<O>, string>
-      >();
-      const prompt = new PromptStorage(false);
-      const outputs = {} as O;
-      const state: State = { loops: {}, queue: {} };
+export function llm<
+  Parameters extends AnyObject = any,
+  O extends Outputs = Outputs
+>(
+  messages:
+    | (RoleAction<Parameters> | RoleAction<Parameters>[][])[]
+    | LLMPromptArrayFunction<Parameters, O>
+    | LLMPromptFunction<Parameters, O>,
+  context: Pick<Context, "llm" | "stream">
+): LLMActionResult<Exclude<Parameters, undefined>, O> {
+  return (parameters: Parameters) => {
+    const events = new EventEmitter<
+      Extract<RecursiveNonObjectKeys<O>, string>
+    >();
 
-      async function* generator() {
-        const generator = props({
-          ai: ai as unknown as TemplateAction<Parameters>,
-          params,
-          ...typedActionFuncs<O>(),
-        })({
+    const prompt = new PromptStorage();
+    const outputs = {} as O;
+    const state: State = { loops: {}, queue: {} };
+
+    const _messages =
+      typeof messages === "function"
+        ? messages({
+            ai: ai as unknown as TemplateAction<Parameters>,
+            params: parameters,
+            ...typedActionFuncs<O>(),
+          })
+        : messages;
+    const __messages = Array.isArray(_messages) ? _messages : [_messages];
+
+    async function* generator() {
+      for (let i = 0; i < __messages.length; i++) {
+        const generator = runActions(__messages[i], {
           events,
-          completion: completion,
           outputs,
-          context: { role: "none", outputAddress: [] },
-          params,
+          params: parameters,
           currentPrompt: prompt,
+          context: { role: "none", outputAddress: [], ...context },
           nextString: undefined,
           state,
         });
@@ -120,81 +135,18 @@ export const llmActionFactory = (completion: LLMCompletionFn) => {
           prompt.pushElement(value);
           yield { ...value, prompt, outputs };
         }
-
-        return { prompt, outputs };
       }
+      return { prompt, outputs };
+    }
 
-      function input(name: string, value: any) {
-        if (!state.queue[name]) state.queue[name] = [];
-        state.queue[name].push(value);
-      }
+    function input(name: string, value: any) {
+      if (!state.queue[name]) state.queue[name] = [];
+      state.queue[name].push(value);
+    }
 
-      return generatorOrPromise(generator(), { events, input });
-    };
-  }
+    // onNewOputput
 
-  return llm;
-};
-
-export function chatGptFactory(llmFunction: LLMCompletionFn) {
-  return function <
-    Parameters extends AnyObject = any,
-    O extends Outputs = Outputs
-  >(
-    messages:
-      | (RoleAction<Parameters> | RoleAction<Parameters>[][])[]
-      | LLMPromptArrayFunction<Parameters, O>
-  ): LLMAction<Exclude<Parameters, undefined>, O> {
-    return (parameters: Parameters) => {
-      const events = new EventEmitter<
-        Extract<RecursiveNonObjectKeys<O>, string>
-      >();
-
-      const prompt = new PromptStorage();
-      const outputs = {} as O;
-      const _messages =
-        typeof messages === "function"
-          ? messages({
-              ai: ai as unknown as TemplateAction<Parameters>,
-              params: parameters,
-              ...typedActionFuncs<O>(),
-            })
-          : messages;
-
-      const state: State = {
-        loops: {},
-        queue: {},
-      };
-      async function* generator() {
-        for (let i = 0; i < _messages.length; i++) {
-          const generator = runActions(_messages[i], {
-            events,
-            completion: llmFunction,
-            outputs,
-            params: parameters,
-            currentPrompt: prompt,
-            context: { role: "none", outputAddress: [] },
-            nextString: undefined,
-            state,
-          });
-
-          for await (const value of generator) {
-            prompt.pushElement(value);
-            yield { ...value, prompt, outputs };
-          }
-        }
-        return { prompt, outputs };
-      }
-
-      function input(name: string, value: any) {
-        if (!state.queue[name]) state.queue[name] = [];
-        state.queue[name].push(value);
-      }
-
-      // onNewOputput
-
-      return generatorOrPromise(generator(), { input, events });
-    };
+    return generatorOrPromise(generator(), { input, events });
   };
 }
 
@@ -205,8 +157,11 @@ export const typedActionFuncs = <O extends Outputs>(): ActionFuncs<O> => {
   };
 };
 
-const createModelCompletion = (func: CreateCompletionFunc): LLMCompletionFn => {
-  const returnFunc = (props: { prompt: PromptStorage; stop?: string }) => {
+export const createLLM = (func: CreateCompletionFunc) => {
+  const completion: LLMCompletionFn = (props: {
+    prompt: PromptStorage;
+    stop?: string;
+  }) => {
     async function* generator() {
       let fullString = "";
 
@@ -221,13 +176,17 @@ const createModelCompletion = (func: CreateCompletionFunc): LLMCompletionFn => {
     return generator();
   };
 
-  return returnFunc;
-};
+  const llmWrapped = <
+    Params extends AnyObject = any,
+    Out extends Outputs = Outputs
+  >(
+    actions: Parameters<typeof llm<Params, Out>>[0],
+    context?: Omit<Parameters<typeof llm<Params, Out>>[1], "llm">
+  ) => {
+    return llm(actions, { ...context, llm: llmWrapped });
+  };
 
-export const createCompletion = (func: CreateCompletionFunc) => {
-  return llmActionFactory(createModelCompletion(func));
-};
+  llmWrapped.completion = completion;
 
-export const createChatCompletion = (func: CreateCompletionFunc) => {
-  return chatGptFactory(createModelCompletion(func));
+  return llmWrapped;
 };

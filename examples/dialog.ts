@@ -8,7 +8,7 @@ async function main() {
   const agent = gpt3<
     { role: string; firstQuestion?: string },
     { inputs: { answer: string }[] }
-  >(({ params, ai, gen }) => [
+  >(({ params, gen }) => [
     system`You are a helpful assistant`,
     user`
     You will answer the user as ${params.role} in the following conversation. 

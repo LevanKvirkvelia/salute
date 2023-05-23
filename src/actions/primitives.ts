@@ -4,13 +4,17 @@ import { PromptElement, PromptStorage, Roles } from "../PromptStorage";
 import { LLMCompletionFn } from "../connectors";
 import { isPromise } from "../helpers";
 
-export type Outputs = Record<string, string | string[] | Outputs[]>;
+export type Outputs = {
+  [key: string]: string | string[] | Outputs | Outputs[];
+};
 
 export type Context = {
   role: Roles;
   currentLoopId?: string;
   outputToArray?: boolean;
   outputAddress: string[];
+  llm: { completion: LLMCompletionFn };
+  stream?: boolean;
 };
 
 export type Queue = {
@@ -29,7 +33,6 @@ export type ActionProps<Parameters> = {
   params: Parameters;
   outputs: Outputs;
   currentPrompt: PromptStorage;
-  completion: LLMCompletionFn;
   nextString: string | undefined;
 };
 

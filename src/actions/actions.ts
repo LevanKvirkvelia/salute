@@ -1,3 +1,4 @@
+import { LLMCompletionFn } from "../connectors";
 import {
   Action,
   createAction,
@@ -39,6 +40,7 @@ export type GenOptions = {
   // n?: number;
   temperature?: number;
   topP?: number;
+  llm?: { completion: LLMCompletionFn };
   // logprobs?: number | null;
   // pattern?: string | null;
   // hidden?: boolean;
@@ -48,23 +50,24 @@ export type GenOptions = {
 
 export const gen = <T extends string>(
   name: T,
-  options?: GenOptions
+  options?: Omit<GenOptions, "stream">
 ): Action<any> => {
   const { stop } = options || {};
 
   return createAction(async function* ({
     outputs,
     currentPrompt,
-    completion,
     nextString,
     context,
     events,
   }) {
-    const llmStream = completion({
+    const llmStream = context.llm.completion({
       ...options,
       prompt: currentPrompt,
       stop: typeof stop === "string" ? stop : nextString,
+      stream: context.stream || false,
     });
+
     let fullString = "";
 
     for await (const result of llmStream) {

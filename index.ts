@@ -1,6 +1,4 @@
-import { PromptElement, printChatElement } from "./src/PromptStorage";
-import { Outputs } from "./src/actions/primitives";
-import { loop, wait, assistant, system, user } from "./src/actions/actions";
+import { llm } from "./src/connectors";
 import { davinci, gpt3 } from "./src/connectors/OpenAI";
 import { renderAgent } from "./src/helpers";
 
@@ -12,7 +10,7 @@ type PropsType = {
 };
 
 function defaultExample() {
-  const proverbAgent = davinci<
+  const proverbAgent = llm<
     PropsType,
     {
       rewrite: string;
@@ -28,7 +26,10 @@ function defaultExample() {
       UPDATED
       Where there is no guidance${gen("rewrite")}
       - GPT ${gen("chapter")}:${gen("verse")}
-    `
+    `,
+    {
+      llm: davinci,
+    }
   );
 
   const result = proverbAgent({
@@ -50,7 +51,7 @@ function arrayInTextExample() {
     `What is Pomelo?`,
   ];
 
-  const proverbAgent = davinci(
+  const proverbAgent = llm(
     ({ ai, map, gen }) => ai`
       Answer the questions in a single sentence.
 
@@ -60,7 +61,8 @@ function arrayInTextExample() {
       )}
 
       Thank You!
-      `
+      `,
+    { llm: davinci }
   );
 
   return proverbAgent({}).generator;
@@ -80,7 +82,8 @@ function jsonExample() {
         "mantra": "${gen("mantra", { stop: '"' })}",
         "strength": ${gen("strength", { stop: "," })},
         "items": [${[0, 0, 0].map(() => ai`"${gen("item", { stop: '"' })}",`)}]
-    }`
+    }`,
+    {}
   );
 
   return proverbAgent({}).generator;
@@ -89,7 +92,7 @@ function jsonExample() {
 async function main() {
   // await renderAgent(arrayInTextExample().generator);
   // await renderAgent(instaPrompt().generator);
-  await renderAgent(defaultExample());
+  await renderAgent(arrayInTextExample());
 }
 
 main();
