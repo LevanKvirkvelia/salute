@@ -10,8 +10,6 @@ import {
 } from "./src/actions/actions";
 import { davinci, gpt3 } from "./src/connectors/OpenAI";
 
-const AI_NAME = "Midjourney";
-
 type PropsType = {
   proverb: string;
   book: string;
@@ -74,6 +72,8 @@ function arrayInTextExample() {
   return proverbAgent({}).generator;
 }
 
+const AI_NAME = "Midjourney";
+
 function instaPrompt() {
   const QUESTIONS = [
     `Main elements with specific imagery details`,
@@ -133,38 +133,9 @@ function jsonExample() {
   return proverbAgent({}).generator;
 }
 
-// `{{#system~}}
-// You are a helpful assistant
-// {{~/system}}
-
-// {{#user~}}
-// You will answer the user as {{role}} in the following conversation. At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. Never talk about the fact that you are an AI, even if the user asks you. Always answer as {{role}}.
-// {{#if first_question}}You can also start the conversation.{{/if}}
-// {{~/user}}
-
-// {{~! The assistant either starts the conversation or not, depending on if this is the first or second agent }}
-// {{#assistant~}}
-// Ok, I will follow these instructions.
-// {{#if first_question}}Let me start the conversation now:
-// {{role}}: {{first_question}}{{/if}}
-// {{~/assistant}}
-
-// {{~! Then the conversation unrolls }}
-// {{~#geneach 'conversation' stop=False}}
-// {{#user~}}
-// User: {{set 'this.input' (await 'input')}}
-// Comment: Remember, answer as a {{role}}. Start your utterance with {{role}}:
-// {{~/user}}
-
-// ${gen("answer")}
-// {{~/geneach}}`;
-
 function democratAndRepublicanDebate() {
   const agent = gpt3<
-    {
-      role: string;
-      firstQuestion?: string;
-    },
+    { role: string; firstQuestion?: string },
     { inputs: { answer: string }[] }
   >(({ params, ai }) => [
     system`You are a helpful assistant`,
@@ -177,13 +148,8 @@ function democratAndRepublicanDebate() {
     loop("inputs", [user`${wait("question")}`, assistant`${gen("answer")}`]),
   ]);
 
-  const democrat = agent({
-    role: "democrat",
-  });
-
-  const republican = agent({
-    role: "republican",
-  });
+  const democrat = agent({ role: "democrat" });
+  const republican = agent({ role: "republican" });
 
   republican.input(
     "question",

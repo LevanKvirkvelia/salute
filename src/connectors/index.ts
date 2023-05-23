@@ -97,11 +97,7 @@ export const llmActionFactory = (completion: LLMCompletionFn) => {
       >();
       const prompt = new PromptStorage(false);
       const outputs = {} as O;
-
-      const state: State = {
-        loops: {},
-        queue: {},
-      };
+      const state: State = { loops: {}, queue: {} };
 
       async function* generator() {
         const generator = props({
