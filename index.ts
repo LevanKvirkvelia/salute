@@ -183,8 +183,8 @@ async function renderAgent(
 async function main() {
   // await renderAgent(arrayInTextExample().generator);
   // await renderAgent(instaPrompt().generator);
-  // await renderAgent(defaultExample());
-  democratAndRepublicanDebate();
+  await renderAgent(defaultExample());
+  // democratAndRepublicanDebate();
 }
 
 main();

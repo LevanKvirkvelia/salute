@@ -34,18 +34,16 @@ function vars<P = any>(name: keyof P): Action<P> {
 export type GenOptions = {
   stop?: string;
   stopRegex?: string;
-  saveStopText?: string | boolean;
+  // saveStopText?: string | boolean;
   maxTokens?: number;
-  n?: number;
+  // n?: number;
   temperature?: number;
   topP?: number;
-  logprobs?: number | null;
-  pattern?: string | null;
-  hidden?: boolean;
-  parse?: boolean;
-  listAppend?: boolean;
-  savePrompt?: string | boolean;
-  tokenHealing?: boolean | null;
+  // logprobs?: number | null;
+  // pattern?: string | null;
+  // hidden?: boolean;
+  // parse?: boolean;
+  // tokenHealing?: boolean | null;
 };
 
 export const gen = <T extends string>(
@@ -63,6 +61,7 @@ export const gen = <T extends string>(
     events,
   }) {
     const llmStream = completion({
+      ...options,
       prompt: currentPrompt,
       stop: typeof stop === "string" ? stop : nextString,
     });

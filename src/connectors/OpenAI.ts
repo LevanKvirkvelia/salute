@@ -48,7 +48,10 @@ export const createOpenAICompletion = (
         model: options.model,
         prompt: props.prompt.toString(),
         stream: true,
-        stop: props.stop,
+        stop: props.options?.stop,
+        temperature: props.options?.temperature,
+        top_p: props.options?.topP,
+        max_tokens: props.options?.maxTokens,
       },
       { responseType: "stream" }
     );
@@ -76,7 +79,10 @@ export const createOpenAIChatCompletion = (
         ...options,
         messages: props.prompt.toChatCompletion(),
         stream: true,
-        stop: props.stop,
+        stop: props.options?.stop,
+        temperature: props.options?.temperature,
+        top_p: props.options?.topP,
+        max_tokens: props.options?.maxTokens,
       },
       { responseType: "stream" }
     );

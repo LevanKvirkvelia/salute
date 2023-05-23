@@ -13,15 +13,16 @@ import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
 
 type CreateCompletionFunc = (props: {
   prompt: PromptStorage;
-  stop?: string;
+  options?: GenOptions;
 }) => Promise<AsyncGenerator<string>>;
 
 export type AnyObject = Record<string, any>;
 
-export type LLMCompletionFn = (props: {
-  prompt: PromptStorage;
-  stop?: string;
-}) => PromiseOrCursor<string, string>;
+export type LLMCompletionFn = (
+  props: {
+    prompt: PromptStorage;
+  } & GenOptions
+) => PromiseOrCursor<string, string>;
 
 type GenFunc<T> = (name: T, options?: GenOptions) => Action<any>;
 type MapFunc<T> = <Parameters = any>(

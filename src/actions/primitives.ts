@@ -3,6 +3,7 @@ import merge from "ts-deepmerge";
 import { PromptElement, PromptStorage, Roles } from "../PromptStorage";
 import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
 import { LLMCompletionFn } from "../connectors";
+import { GenOptions } from "./actions";
 
 export type Outputs = Record<string, string | string[] | Outputs[]>;
 
