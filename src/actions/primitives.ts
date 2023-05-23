@@ -2,7 +2,7 @@ import { EventEmitter } from "eventemitter3";
 import merge from "ts-deepmerge";
 import { PromptElement, PromptStorage, Roles } from "../PromptStorage";
 import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
-import { LLMCompletionFn } from "./llms";
+import { LLMCompletionFn } from "../connectors";
 
 export type Outputs = Record<string, string | string[] | Outputs[]>;
 
