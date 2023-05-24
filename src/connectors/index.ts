@@ -11,7 +11,7 @@ import {
   Context,
   ActionProps,
 } from "../actions/primitives";
-import { PromiseOrCursor, generatorOrPromise } from "../generatorOrPromise";
+import { renderStream } from "../helpers";
 
 export type AnyObject = Record<string, any>;
 
@@ -39,47 +39,60 @@ type MapFunc<T> = <Parameters = any>(
 ) => Action<Parameters>;
 
 // type
-type SubTypeKeysOnly<O extends Outputs> = {
-  [K in keyof O]: O[K] extends Outputs[] ? K : unknown;
-}[keyof O];
+type IsEmptyObject<T> = keyof T extends never ? true : false;
+
+type SubTypeKeysOnly<O extends Outputs> = IsEmptyObject<O> extends true
+  ? string
+  : {
+      [K in keyof O]: O[K] extends Outputs[] ? K : never;
+    }[keyof O];
 
 type NonObjectKeys<T> = {
   [K in keyof T]: T[K] extends string | string[] ? K : never;
-}[keyof T];
+}[keyof T & string];
 
 type ArrayElementType<T> = T extends (infer E)[] ? E : never;
 
-type RecursiveNonObjectKeys<T> = T extends string | string[]
+type RecursiveOutputKeys<T> = T extends string | string[]
   ? never
   : T extends any[]
-  ? RecursiveNonObjectKeys<ArrayElementType<T>>
+  ? RecursiveOutputKeys<ArrayElementType<T>>
   :
+      | NonObjectKeys<T>
       | {
-          [K in keyof T]: RecursiveNonObjectKeys<T[K]>;
-        }[keyof T]
-      | NonObjectKeys<T>;
+          [K in keyof T]: RecursiveOutputKeys<T[K]>;
+        }[keyof T & string];
 
 type ActionFuncs<Parameters, O extends Outputs> = {
-  gen: GenFunc<RecursiveNonObjectKeys<O>>;
+  gen: GenFunc<RecursiveOutputKeys<O>>;
   map: MapFunc<SubTypeKeysOnly<O>>;
   ai: TemplateAction<Parameters>;
 };
 
-export type LLMActionResult<T extends AnyObject, O extends Outputs> = (
-  props: T
-) => PromiseOrCursor<
-  PromptElement & {
-    prompt: PromptStorage;
-    outputs: O;
-  },
-  { prompt: PromptStorage; outputs: O }
-> & {
-  events: EventEmitter<
-    Extract<RecursiveNonObjectKeys<O>, string> extends never
-      ? string
-      : Extract<RecursiveNonObjectKeys<O>, string>
-  >;
+export type AllowerOuputKeys<O extends Outputs> =
+  RecursiveOutputKeys<O> extends never ? string : RecursiveOutputKeys<O>;
+
+export type LLMEvents = string;
+
+export type LLMListeners = {
+  onPromptElement?: (element: PromptElement) => any;
+  onLLMChunk?: (token: string) => any;
+  onLLMResponse?: (token: string, name: string) => any;
+  render?: boolean;
+};
+
+export type Agent<T extends AnyObject, O extends Outputs> = (
+  props: T,
+  listeners?: LLMListeners
+) => {
+  events: EventEmitter<LLMEvents>;
+  generator: (returnAllElements?: boolean) => AsyncGenerator<PromptElement, O>;
+  run(props?: LLMListeners): Promise<O>;
+  then: (callback: (output: O) => any) => void;
   input(name: string, value: any): void;
+  prompt: PromptStorage;
+  outputs: O;
+  next: () => Promise<string | null>;
 };
 
 type RolesLLMInput<Parameters extends AnyObject = any> = (
@@ -87,25 +100,21 @@ type RolesLLMInput<Parameters extends AnyObject = any> = (
   | RoleAction<Parameters>[][]
 )[];
 
+type LLMInput<Parameters extends AnyObject, O extends Outputs> =
+  | ((
+      props: ActionProps<Parameters> & ActionFuncs<Parameters, O>
+    ) => RolesLLMInput<Parameters> | Action<Parameters>)
+  | RolesLLMInput<Parameters>;
+
 export function llm<
   Parameters extends AnyObject = any,
-  O extends Outputs = Outputs
+  O extends Outputs = any
 >(
-  messages:
-    | ((
-        props: ActionProps<Parameters> & ActionFuncs<Parameters, O>
-      ) => RolesLLMInput<Parameters> | Action<Parameters>)
-    | RolesLLMInput<Parameters>,
-
+  messages: LLMInput<Parameters, O>,
   context: Pick<Context, "llm" | "stream">
-): LLMActionResult<Exclude<Parameters, undefined>, O> {
-  return (parameters: Parameters) => {
-    const events = new EventEmitter<
-      Extract<RecursiveNonObjectKeys<O>, string> extends never
-        ? string
-        : Extract<RecursiveNonObjectKeys<O>, string>
-    >();
-
+): Agent<Exclude<Parameters, undefined>, O> {
+  return (parameters: Parameters, listeners: LLMListeners = {}) => {
+    const events = new EventEmitter<LLMEvents>();
     const prompt = new PromptStorage();
     const outputs = {} as O;
     const state: State = { loops: {}, queue: {} };
@@ -129,16 +138,27 @@ export function llm<
         : messages;
     const __messages = Array.isArray(_messages) ? _messages : [_messages];
 
-    async function* generator() {
+    async function* generatorFunc(returnAllElements = false) {
+      if (listeners.onLLMResponse)
+        events.on("*", ({ value, name }) => {
+          listeners.onLLMResponse?.(value, name);
+        });
       for (let i = 0; i < __messages.length; i++) {
         const generator = runActions(__messages[i], actionPromps);
 
-        for await (const value of generator) {
+        for await (const value of listeners.render
+          ? renderStream(generator, context.llm.isChat)
+          : generator) {
           prompt.pushElement(value);
-          yield { ...value, prompt, outputs };
+          listeners.onPromptElement?.(value);
+          if (returnAllElements) yield value;
+          else if (value.source === "llm") {
+            listeners.onLLMChunk?.(value.content);
+            yield value;
+          }
         }
       }
-      return { prompt, outputs };
+      return outputs;
     }
 
     function input(name: string, value: any) {
@@ -146,7 +166,46 @@ export function llm<
       state.queue[name].push(value);
     }
 
-    return generatorOrPromise(generator(), { input, events });
+    let generator: AsyncGenerator<PromptElement, O> | null = null;
+    async function run({
+      onPromptElement,
+      onLLMChunk,
+      onLLMResponse,
+    }: LLMListeners = {}) {
+      generator = generatorFunc(true);
+      let result = await generator.next();
+      events.on("*", ({ value, name }) => {
+        onLLMResponse?.(value, name);
+      });
+      while (!result.done) {
+        onPromptElement?.(result.value);
+
+        if (result.value.source === "llm") {
+          onLLMChunk?.(result.value.content);
+        }
+
+        result = await generator.next();
+      }
+
+      return outputs;
+    }
+    return {
+      generator: generatorFunc,
+      next: async () => {
+        if (!generator) generator = generatorFunc(false);
+        const n = await generator.next();
+        if (n.done) return null;
+        return n.value.content;
+      },
+      run,
+      async then(cb) {
+        cb(await run());
+      },
+      events,
+      outputs,
+      prompt,
+      input,
+    };
   };
 }
 
@@ -156,7 +215,7 @@ export const typedActionFuncs = <Parameters, O extends Outputs>(): ActionFuncs<
 > => {
   return {
     ai: ai as unknown as TemplateAction<Parameters>,
-    gen: gen as unknown as GenFunc<RecursiveNonObjectKeys<O>>,
+    gen: gen as unknown as GenFunc<RecursiveOutputKeys<O>>,
     map: map as unknown as MapFunc<SubTypeKeysOnly<O>>,
   };
 };
@@ -181,8 +240,8 @@ export const createLLM = (func: CreateLLMCompletionFn, isChat: boolean) => {
     Params extends AnyObject = any,
     Out extends Outputs = any
   >(
-    actions: Parameters<typeof llm<Params, Out>>[0],
-    context?: Omit<Parameters<typeof llm<Params, Out>>[1], "llm">
+    actions: LLMInput<Params, Out>,
+    context?: Pick<Context, "stream">
   ) => {
     return llm(actions, { ...context, llm: llmWrapped });
   };

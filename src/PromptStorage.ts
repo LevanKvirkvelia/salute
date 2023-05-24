@@ -1,4 +1,3 @@
-import chalk = require("chalk");
 import { ChatCompletionRequestMessage } from "openai";
 
 export type PromptSources = "llm" | "parameter" | "constant" | "prompt";
@@ -64,30 +63,5 @@ export class PromptStorage extends Array<Message> {
       });
     }
     return messages;
-  }
-}
-
-export function printChatElement(element: PromptElement) {
-  switch (element.source) {
-    case "constant":
-      process.stdout.write(chalk.yellow(element.content));
-      break;
-    case "parameter":
-      process.stdout.write(chalk.bgBlue(element.content));
-      break;
-    case "prompt":
-      process.stdout.write(element.content);
-      break;
-    case "llm":
-      process.stdout.write(chalk.bgGreen(element.content));
-      break;
-  }
-}
-
-function prettyChatLog(chat: PromptStorage) {
-  for (const rolePrompt of chat) {
-    console.log(`----------${rolePrompt[0].role}----------\n`);
-    rolePrompt.forEach((el) => printChatElement(el));
-    console.log("\n");
   }
 }

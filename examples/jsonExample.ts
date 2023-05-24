@@ -1,7 +1,7 @@
-import { davinci, renderAgent } from "..";
+import { davinci } from "..";
 
 async function main() {
-  const proverbAgent = davinci(
+  const jsonAgent = davinci(
     ({ ai, gen }) => ai`
         The following is a character profile for an RPG game in JSON format.
     
@@ -19,7 +19,8 @@ async function main() {
         }`
   );
 
-  renderAgent(proverbAgent({}).generator, false);
+  const result = await jsonAgent({}, { render: true });
+  console.log(result);
 }
 
 main();

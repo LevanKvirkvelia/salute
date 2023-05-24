@@ -1,4 +1,4 @@
-import { assistant, gpt3, renderAgent, system, user } from "..";
+import { assistant, gpt3, system, user } from "..";
 
 const AI_NAME = "Midjourney";
 
@@ -31,11 +31,8 @@ async function main() {
     QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
   ]);
 
-  return renderAgent(
-    agent({
-      query: `A picture of a dog`,
-    }).generator
-  );
+  const result = await agent({ query: `A picture of a dog` }, { render: true });
+  console.log(result);
 }
 
 main();

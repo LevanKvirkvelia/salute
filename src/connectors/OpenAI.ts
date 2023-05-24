@@ -42,23 +42,27 @@ export const createOpenAICompletion = (
   const openAIApi = new OpenAIApi(configuration);
 
   return createLLM(async function* ({ prompt, ...props }) {
-    const response = await openAIApi.createCompletion(
-      {
-        ...options,
-        ...props,
-        prompt: prompt.toString(),
-        top_p: props?.topP || options.top_p,
-        max_tokens: props?.maxTokens || options.max_tokens,
-      },
-      { responseType: props.stream ? "stream" : undefined }
-    );
+    try {
+      const response = await openAIApi.createCompletion(
+        {
+          ...options,
+          ...props,
+          prompt: prompt.toString(),
+          top_p: props?.topP || options.top_p,
+          max_tokens: props?.maxTokens || options.max_tokens,
+        },
+        { responseType: props.stream ? "stream" : undefined }
+      );
 
-    if (!props.stream) {
-      yield response.data.choices[0].text;
-    } else {
-      const stream = response.data as unknown as NodeJS.ReadableStream;
+      if (!props.stream) {
+        yield response.data.choices[0].text;
+      } else {
+        const stream = response.data as unknown as NodeJS.ReadableStream;
 
-      yield* parseOpenAIStream(stream);
+        yield* parseOpenAIStream(stream);
+      }
+    } catch (e) {
+      throw e.response;
     }
   }, false);
 };
@@ -75,22 +79,27 @@ export const createOpenAIChatCompletion = (
   const openAIApi = new OpenAIApi(configuration);
 
   return createLLM(async function* ({ prompt, ...props }) {
-    const response = await openAIApi.createChatCompletion(
-      {
-        ...options,
-        ...props,
-        messages: prompt.toChatCompletion(),
-        top_p: props?.topP || options.top_p,
-        max_tokens: props?.maxTokens || options.max_tokens,
-        stream: props.stream || undefined,
-      },
-      { responseType: props.stream ? "stream" : undefined }
-    );
-    if (!props.stream) {
-      yield response.data.choices[0].message?.content;
-    } else {
-      const stream = response.data as unknown as NodeJS.ReadableStream;
-      yield* parseOpenAIStream(stream);
+    try {
+      const response = await openAIApi.createChatCompletion(
+        {
+          ...options,
+          ...props,
+          messages: prompt.toChatCompletion(),
+          top_p: props?.topP || options.top_p,
+          max_tokens: props?.maxTokens || options.max_tokens,
+          stream: props.stream || undefined,
+        },
+        { responseType: props.stream ? "stream" : undefined }
+      );
+      if (!props.stream) {
+        yield response.data.choices[0].message?.content;
+      } else {
+        const stream = response.data as unknown as NodeJS.ReadableStream;
+        yield* parseOpenAIStream(stream);
+      }
+    } catch (e) {
+      console.log(e.response)
+      throw e.response;
     }
   }, true);
 };

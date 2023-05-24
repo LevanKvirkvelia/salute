@@ -1,12 +1,29 @@
-import { PromptElement, printChatElement } from "./PromptStorage";
+import chalk = require("chalk");
+import { PromptElement, PromptStorage } from "./PromptStorage";
 import { Outputs } from "./actions/primitives";
 
-export async function renderAgent(
-  gen: AsyncGenerator<PromptElement & { outputs: Outputs }>,
+export function printChatElement(element: PromptElement) {
+  switch (element.source) {
+    case "constant":
+      process.stdout.write(chalk.yellow(element.content));
+      break;
+    case "parameter":
+      process.stdout.write(chalk.bgBlue(element.content));
+      break;
+    case "prompt":
+      process.stdout.write(element.content);
+      break;
+    case "llm":
+      process.stdout.write(chalk.bgGreen(element.content));
+      break;
+  }
+}
+
+export async function* renderStream(
+  gen: AsyncGenerator<PromptElement>,
   showRoles = true
 ) {
   let lastRole = null;
-  let lastElement: { outputs: Outputs } | null = null;
 
   for await (const a of gen) {
     if (a.role !== lastRole && showRoles) {
@@ -14,11 +31,17 @@ export async function renderAgent(
       lastRole = a.role;
     }
     printChatElement(a);
-    lastElement = a;
+    yield a;
   }
-
   console.log("\n----------------------------------------");
-  console.log(lastElement?.outputs);
+}
+
+export function prettyPrintPrompt(chat: PromptStorage) {
+  for (const rolePrompt of chat) {
+    console.log(`----------${rolePrompt[0].role}----------\n`);
+    rolePrompt.forEach((el) => printChatElement(el));
+    console.log("\n");
+  }
 }
 
 export function isPromise<T>(obj: any): obj is Promise<T> {

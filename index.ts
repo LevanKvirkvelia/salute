@@ -10,10 +10,10 @@ export {
   llm,
   createLLM,
   AnyObject,
-  LLMActionResult,
+  Agent,
   LLMCompletionFn,
 } from "./src/connectors";
-export { renderAgent } from "./src/helpers";
+export { renderStream } from "./src/helpers";
 export {
   system,
   user,

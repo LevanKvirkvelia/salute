@@ -25,12 +25,12 @@ export function wait<T extends string>(name: T): Action<any> {
 export type GenOptions = {
   stop?: string;
   stopRegex?: string;
-  // saveStopText?: string | boolean;
   maxTokens?: number;
-  // n?: number;
   temperature?: number;
   topP?: number;
   llm?: { completion: LLMCompletionFn };
+  // saveStopText?: string | boolean;
+  // n?: number;
   // logprobs?: number | null;
   // pattern?: string | null;
   // hidden?: boolean;
@@ -70,6 +70,7 @@ export const gen = <T extends string>(
       (outputs[name] as string[]).push(fullString);
     }
     events.emit(name, fullString);
+    events.emit("*", { name, value: fullString });
   });
 };
 

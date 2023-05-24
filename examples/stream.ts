@@ -1,4 +1,4 @@
-import { ai, davinci, gen, renderAgent } from "..";
+import { ai, davinci, gen } from "..";
 
 async function main() {
   const proverbAgent = davinci(
@@ -8,20 +8,23 @@ async function main() {
       - ${params.book} ${params.chapter}:${params.verse}
 
       UPDATED
-      Where there is no guidance${gen("rewrite")}
-      - GPT ${gen("chapter")}:${gen("verse")}
+      Where there is no guidance${gen("rewrite", { temperature: 0 })}
+      - GPT ${gen("chapter", { temperature: 0 })}:${gen("verse")}
     `
   );
 
-  const result = proverbAgent({
-    proverb:
-      "Where there is no guidance, a people falls,\nbut in an abundance of counselors there is safety.",
-    book: "Proverbs",
-    chapter: 11,
-    verse: 14,
-  });
+  const result = await proverbAgent(
+    {
+      proverb:
+        "Where there is no guidance, a people falls,\nbut in an abundance of counselors there is safety.",
+      book: "Proverbs",
+      chapter: 11,
+      verse: 14,
+    },
+    { render: true }
+  );
 
-  renderAgent(result.generator, false);
+  console.log(result);
 }
 
 main();

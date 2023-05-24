@@ -1,13 +1,4 @@
-import {
-  assistant,
-  gen,
-  gpt3,
-  loop,
-  renderAgent,
-  system,
-  user,
-  wait,
-} from "..";
+import { assistant, gen, gpt3, loop, system, user, wait } from "..";
 
 async function main() {
   const agent = gpt3(({ params }) => [
@@ -17,7 +8,6 @@ async function main() {
     At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. 
     Never talk about the fact that you are an AI, even if the user asks you. Always answer as ${params.role}.`,
     assistant`Ok, I will follow these instructions.`,
-
     loop("inputs", [
       user`${wait("question")}`, //
       assistant`${gen("answer")}`,
@@ -25,24 +15,15 @@ async function main() {
   ]);
 
   const democrat = agent({ role: "democrat" });
-  const republican = agent({ role: "republican" });
+  const republican = agent({ role: "republican" }, { render: true });
 
-  republican.input(
-    "question",
-    "What is your opinion on the topic of abortion?"
-  );
+  const firstQuestion = "What is your opinion on the topic of abortion?";
+  republican.input("question", firstQuestion);
 
-  republican.events.on("answer", (answer) => {
-    democrat.input("question", answer);
-  });
-
-  democrat.events.on("answer", (answer) => {
-    republican.input("question", answer);
-  });
-
-  democrat.then(() => {});
-
-  renderAgent(republican.generator);
+  for (let i = 0; i < 3; i++) {
+    democrat.input("question", await republican.next()!);
+    republican.input("question", await democrat.next()!);
+  }
 }
 
 main();

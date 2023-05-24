@@ -1,4 +1,4 @@
-import { davinci, llm, renderAgent } from "..";
+import { davinci, llm, renderStream } from "..";
 
 async function main() {
   const QUESTIONS = [
@@ -8,7 +8,7 @@ async function main() {
     `What is Pomelo?`,
   ];
 
-  const proverbAgent = llm(
+  const agent = llm(
     ({ ai, map, gen }) => ai`
       Answer the questions in a single sentence.
 
@@ -19,10 +19,10 @@ async function main() {
 
       Thank You!
       `,
-    { llm: davinci }
+    { llm: davinci, stream: true }
   );
 
-  renderAgent(proverbAgent({}).generator);
+  await agent({}, { render: true });
 }
 
 main();
