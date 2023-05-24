@@ -105,13 +105,5 @@ export const gpt4 = createOpenAIChatCompletion(
 
 export const davinci = createOpenAICompletion(
   { model: "text-davinci-003" },
-  {
-    apiKey: process.env.OPENAI_KEY,
-    basePath: "https://oai.hconeai.com/v1",
-    baseOptions: {
-      headers: {
-        "Helicone-Auth": "Bearer sk-s6usw5y-zaqea2i-xgtvt3y-ohh4w6a",
-      },
-    },
-  }
+  { apiKey: process.env.OPENAI_KEY }
 );
