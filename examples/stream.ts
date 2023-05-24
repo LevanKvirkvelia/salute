@@ -21,7 +21,7 @@ async function main() {
     verse: 14,
   });
 
-  renderAgent(result.generator);
+  renderAgent(result.generator, false);
 }
 
 main();
