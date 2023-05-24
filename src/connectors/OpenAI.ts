@@ -41,21 +41,25 @@ export const createOpenAICompletion = (
 
   const openAIApi = new OpenAIApi(configuration);
 
-  return createLLM(async function* (props) {
+  return createLLM(async function* ({ prompt, ...props }) {
     const response = await openAIApi.createCompletion(
       {
         ...options,
         ...props,
-        prompt: props.prompt.toString(),
+        prompt: prompt.toString(),
         top_p: props?.topP || options.top_p,
         max_tokens: props?.maxTokens || options.max_tokens,
       },
-      { responseType: "stream" }
+      { responseType: props.stream ? "stream" : undefined }
     );
 
-    const stream = response.data as unknown as NodeJS.ReadableStream;
+    if (!props.stream) {
+      yield response.data.choices[0].text;
+    } else {
+      const stream = response.data as unknown as NodeJS.ReadableStream;
 
-    yield* parseOpenAIStream(stream);
+      yield* parseOpenAIStream(stream);
+    }
   }, false);
 };
 
@@ -70,21 +74,24 @@ export const createOpenAIChatCompletion = (
 
   const openAIApi = new OpenAIApi(configuration);
 
-  return createLLM(async function* (props) {
+  return createLLM(async function* ({ prompt, ...props }) {
     const response = await openAIApi.createChatCompletion(
       {
         ...options,
         ...props,
-        messages: props.prompt.toChatCompletion(),
+        messages: prompt.toChatCompletion(),
         top_p: props?.topP || options.top_p,
         max_tokens: props?.maxTokens || options.max_tokens,
+        stream: props.stream || undefined,
       },
-      { responseType: "stream" }
+      { responseType: props.stream ? "stream" : undefined }
     );
-
-    const stream = response.data as unknown as NodeJS.ReadableStream;
-
-    yield* parseOpenAIStream(stream);
+    if (!props.stream) {
+      yield response.data.choices[0].message?.content;
+    } else {
+      const stream = response.data as unknown as NodeJS.ReadableStream;
+      yield* parseOpenAIStream(stream);
+    }
   }, true);
 };
 

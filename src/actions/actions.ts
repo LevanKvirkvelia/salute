@@ -54,7 +54,7 @@ export const gen = <T extends string>(
     const llmStream = context.llm.completion({
       ...options,
       prompt: currentPrompt,
-      stop: typeof stop === "string" ? stop : nextString,
+      stop: (typeof stop === "string" ? stop : nextString) || undefined,
       stream: context.stream || false,
     });
 
