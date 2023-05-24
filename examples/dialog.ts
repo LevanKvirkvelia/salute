@@ -9,7 +9,7 @@ async function main() {
     Never talk about the fact that you are an AI, even if the user asks you. Always answer as ${params.role}.`,
     assistant`Ok, I will follow these instructions.`,
     loop("inputs", [
-      user`${wait("question")}`, //
+      user`${wait("question", true)}`, //
       assistant`${gen("answer")}`,
     ]),
   ]);
@@ -24,6 +24,10 @@ async function main() {
     democrat.input("question", await republican.next()!);
     republican.input("question", await democrat.next()!);
   }
+
+  await republican.next();
+
+  console.log(republican.outputs);
 }
 
 main();

@@ -124,7 +124,7 @@ export function llm<
       outputs,
       params: parameters,
       currentPrompt: prompt,
-      context: { role: "user", outputAddress: [], ...context },
+      context: { role: "none", outputAddress: [], ...context },
       nextString: undefined,
       state,
     };

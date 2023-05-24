@@ -8,12 +8,27 @@ import {
   TemplateActionInput,
 } from "./primitives";
 
-export function wait<T extends string>(name: T): Action<any> {
-  return createAction(async function* ({ currentPrompt, context, state }) {
+export function wait<T extends string>(
+  name: T,
+  save: boolean | string = false
+): Action<any> {
+  return createAction(async function* ({
+    currentPrompt,
+    context,
+    state,
+    outputs,
+  }) {
     while (typeof state.queue[name]?.[0] === "undefined") {
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
     const value = state.queue[name].shift();
+    const saveName = save && typeof save === "string" ? save : name;
+    if (!context.outputToArray) outputs[saveName] = value;
+    else {
+      if (!Array.isArray(outputs[saveName])) outputs[saveName] = [];
+      (outputs[saveName] as string[]).push(value);
+    }
+
     yield currentPrompt.getElement({
       content: `${value}` || "",
       source: "parameter",
@@ -62,7 +77,9 @@ export const gen = <T extends string>(
 
     for await (const result of llmStream) {
       fullString += result;
-      yield currentPrompt.getLLMElement(result);
+      if (context.stream) {
+        yield currentPrompt.getLLMElement(result);
+      }
     }
     if (!context.outputToArray) outputs[name] = fullString;
     else {
@@ -71,6 +88,9 @@ export const gen = <T extends string>(
     }
     events.emit(name, fullString);
     events.emit("*", { name, value: fullString });
+    if (!context.stream) {
+      yield currentPrompt.getLLMElement(fullString);
+    }
   });
 };
 
