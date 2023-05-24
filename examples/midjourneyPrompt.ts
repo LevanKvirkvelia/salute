@@ -1,6 +1,4 @@
-import { system, user, assistant } from "../src/actions/actions";
-import { gpt3 } from "../src/connectors/OpenAI";
-import { renderAgent } from "../src/helpers";
+import { assistant, gpt3, renderAgent, system, user } from "..";
 
 const AI_NAME = "Midjourney";
 

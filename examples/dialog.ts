@@ -1,8 +1,4 @@
-import { system, user, assistant, loop, wait } from "../src/actions/actions";
-import { gpt3 } from "../src/connectors/OpenAI";
-import { renderAgent } from "../src/helpers";
-
-const AI_NAME = "Midjourney";
+import { assistant, gpt3, loop, renderAgent, system, user, wait } from "..";
 
 async function main() {
   const agent = gpt3<

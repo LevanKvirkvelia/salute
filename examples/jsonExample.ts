@@ -1,6 +1,4 @@
-import { llm } from "../src/connectors";
-import { davinci } from "../src/connectors/OpenAI";
-import { renderAgent } from "../src/helpers";
+import { davinci, renderAgent } from "..";
 
 async function main() {
   const proverbAgent = davinci(

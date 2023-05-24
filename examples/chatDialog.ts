@@ -1,6 +1,5 @@
-import { system, user, assistant, gen } from "../src/actions/actions";
-import { gpt3 } from "../src/connectors/OpenAI";
-import { renderAgent } from "../src/helpers";
+import { assistant, gen, gpt3, renderAgent, system, user } from "..";
+
 
 async function main() {
   const agent = gpt3([
