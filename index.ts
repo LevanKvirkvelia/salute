@@ -12,7 +12,6 @@ export {
   AnyObject,
   LLMActionResult,
   LLMCompletionFn,
-  LLMPromptFunction,
 } from "./src/connectors";
 export { renderAgent } from "./src/helpers";
 export {

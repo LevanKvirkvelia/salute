@@ -2,14 +2,14 @@ import { PromptElement, printChatElement } from "./PromptStorage";
 import { Outputs } from "./actions/primitives";
 
 export async function renderAgent(
-  gen: AsyncGenerator<PromptElement & { outputs: Outputs }>
+  gen: AsyncGenerator<PromptElement & { outputs: Outputs }>,
+  showRoles = true
 ) {
   let lastRole = null;
   let lastElement: { outputs: Outputs } | null = null;
-  let hasRoles = true;
+
   for await (const a of gen) {
-    if (hasRoles && a.role === "none") hasRoles = false;
-    if (a.role !== lastRole && hasRoles) {
+    if (a.role !== lastRole && showRoles) {
       console.log(`\n------------------ ${a.role} ------------------`);
       lastRole = a.role;
     }
@@ -27,4 +27,10 @@ export function isPromise<T>(obj: any): obj is Promise<T> {
     (typeof obj === "object" || typeof obj === "function") &&
     typeof obj.then === "function"
   );
+}
+
+export function isArrayTemplateStringsArray(
+  strings: any | TemplateStringsArray
+): strings is TemplateStringsArray {
+  return Array.isArray((strings as TemplateStringsArray).raw);
 }

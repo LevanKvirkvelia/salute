@@ -41,24 +41,21 @@ export const createOpenAICompletion = (
 
   const openAIApi = new OpenAIApi(configuration);
 
-  return createLLM(async (props) => {
+  return createLLM(async function* (props) {
     const response = await openAIApi.createCompletion(
       {
         ...options,
-        model: options.model,
+        ...props,
         prompt: props.prompt.toString(),
-        stream: true,
-        stop: props.options?.stop,
-        temperature: props.options?.temperature,
-        top_p: props.options?.topP,
-        max_tokens: props.options?.maxTokens,
+        top_p: props?.topP || options.top_p,
+        max_tokens: props?.maxTokens || options.max_tokens,
       },
       { responseType: "stream" }
     );
 
     const stream = response.data as unknown as NodeJS.ReadableStream;
 
-    return parseOpenAIStream(stream);
+    yield* parseOpenAIStream(stream);
   }, false);
 };
 
@@ -73,23 +70,21 @@ export const createOpenAIChatCompletion = (
 
   const openAIApi = new OpenAIApi(configuration);
 
-  return createLLM(async (props) => {
+  return createLLM(async function* (props) {
     const response = await openAIApi.createChatCompletion(
       {
         ...options,
+        ...props,
         messages: props.prompt.toChatCompletion(),
-        stream: true,
-        stop: props.options?.stop,
-        temperature: props.options?.temperature,
-        top_p: props.options?.topP,
-        max_tokens: props.options?.maxTokens,
+        top_p: props?.topP || options.top_p,
+        max_tokens: props?.maxTokens || options.max_tokens,
       },
       { responseType: "stream" }
     );
 
     const stream = response.data as unknown as NodeJS.ReadableStream;
 
-    return parseOpenAIStream(stream);
+    yield* parseOpenAIStream(stream);
   }, true);
 };
 

@@ -19,7 +19,7 @@ async function main() {
         }`
   );
 
-  renderAgent(proverbAgent({}).generator);
+  renderAgent(proverbAgent({}).generator, false);
 }
 
 main();

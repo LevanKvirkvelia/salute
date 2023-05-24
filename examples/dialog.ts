@@ -1,10 +1,16 @@
-import { assistant, gpt3, loop, renderAgent, system, user, wait } from "..";
+import {
+  assistant,
+  gen,
+  gpt3,
+  loop,
+  renderAgent,
+  system,
+  user,
+  wait,
+} from "..";
 
 async function main() {
-  const agent = gpt3<
-    { role: string; firstQuestion?: string },
-    { inputs: { answer: string }[] }
-  >(({ params, gen }) => [
+  const agent = gpt3(({ params }) => [
     system`You are a helpful assistant`,
     user`
     You will answer the user as ${params.role} in the following conversation. 
@@ -12,7 +18,10 @@ async function main() {
     Never talk about the fact that you are an AI, even if the user asks you. Always answer as ${params.role}.`,
     assistant`Ok, I will follow these instructions.`,
 
-    loop("inputs", [user`${wait("question")}`, assistant`${gen("answer")}`]),
+    loop("inputs", [
+      user`${wait("question")}`, //
+      assistant`${gen("answer")}`,
+    ]),
   ]);
 
   const democrat = agent({ role: "democrat" });
