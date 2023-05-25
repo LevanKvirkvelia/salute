@@ -79,11 +79,13 @@ export const gen = (name: string, options?: GenOptions): Action<any, any> => {
       }
     }
 
+    const isMulti = options?.n && options.n > 1;
+
     if (!context.outputToArray)
-      outputs[name] = options?.n ? fullStrings : fullStrings[0];
+      outputs[name] = isMulti ? fullStrings : fullStrings[0];
     else {
       if (!Array.isArray(outputs[name])) outputs[name] = [];
-      if (options?.n) (outputs[name] as string[][]).push(fullStrings);
+      if (isMulti) (outputs[name] as string[][]).push(fullStrings);
       else (outputs[name] as string[]).push(fullStrings[0]);
     }
     events.emit(name, fullStrings);
