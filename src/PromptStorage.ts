@@ -7,6 +7,7 @@ export type PromptElement = {
   content: string;
   source: PromptSources;
   role: Roles;
+  hidden?: boolean | (() => boolean);
 };
 
 export type Message = PromptElement[];
@@ -51,7 +52,15 @@ export class PromptStorage extends Array<Message> {
       rolePrompt.forEach((promptElement, i) => {
         if (promptElement.role === "none")
           throw new Error("Role cannot be 'none' or 'disabled'");
-
+        try {
+          const isHidden =
+            (typeof promptElement.hidden === "function"
+              ? promptElement.hidden()
+              : promptElement.hidden) || false;
+          if (isHidden) return;
+        } catch (e) {
+          console.log(e);
+        }
         if (i === 0) {
           messages.push({
             content: promptElement.content,

@@ -11,7 +11,7 @@ import {
 export function wait<T extends string>(
   name: T,
   save: boolean | string = false
-): Action<any> {
+): Action<any, any> {
   return createAction(async function* ({
     currentPrompt,
     context,
@@ -45,7 +45,7 @@ export type GenOptions = {
   topP?: number;
   llm?: { completion: LLMCompletionFn };
   // saveStopText?: string | boolean;
-  // n?: number;
+  n?: number;
   // logprobs?: number | null;
   // pattern?: string | null;
   // hidden?: boolean;
@@ -53,10 +53,7 @@ export type GenOptions = {
   // tokenHealing?: boolean | null;
 };
 
-export const gen = <T extends string>(
-  name: T,
-  options?: GenOptions
-): Action<any> => {
+export const gen = (name: string, options?: GenOptions): Action<any, any> => {
   const { stop } = options || {};
 
   return createAction(async function* ({
@@ -66,6 +63,10 @@ export const gen = <T extends string>(
     context,
     events,
   }) {
+    if (options?.n && context.stream) {
+      throw new Error("Cannot use n with stream");
+    }
+
     const llmStream = context.llm.completion({
       ...options,
       prompt: currentPrompt,
@@ -73,31 +74,34 @@ export const gen = <T extends string>(
       stream: context.stream || false,
     });
 
-    let fullString = "";
+    let fullStrings: string[] = new Array<string>(options?.n || 1).fill("");
 
     for await (const result of llmStream) {
-      fullString += result;
+      fullStrings[result[0]] += result[1];
       if (context.stream) {
-        yield currentPrompt.getLLMElement(result);
+        yield currentPrompt.getLLMElement(result[1]);
       }
     }
-    if (!context.outputToArray) outputs[name] = fullString;
+
+    if (!context.outputToArray)
+      outputs[name] = options?.n ? fullStrings : fullStrings[0];
     else {
       if (!Array.isArray(outputs[name])) outputs[name] = [];
-      (outputs[name] as string[]).push(fullString);
+      if (options?.n) (outputs[name] as string[][]).push(fullStrings);
+      else (outputs[name] as string[]).push(fullStrings[0]);
     }
-    events.emit(name, fullString);
-    events.emit("*", { name, value: fullString });
+    events.emit(name, fullStrings);
+    events.emit("*", { name, value: fullStrings });
     if (!context.stream) {
-      yield currentPrompt.getLLMElement(fullString);
+      yield currentPrompt.getLLMElement(fullStrings[0]);
     }
   });
 };
 
 export function map<Parameters = any>(
   varName: string,
-  elements: TemplateActionInput<Parameters>[]
-): Action<Parameters> {
+  elements: TemplateActionInput<Parameters, any>[]
+): Action<Parameters, any> {
   return createAction(async function* (props) {
     const loopId = Math.random().toString(36).slice(2, 9);
 
@@ -123,8 +127,8 @@ export function map<Parameters = any>(
 
 export function loop<Parameters = any>(
   varName: string,
-  elements: TemplateActionInput<Parameters>
-): Action<Parameters> {
+  elements: TemplateActionInput<Parameters, any>
+): Action<Parameters, any> {
   return createAction(async function* (props) {
     const loopId = Math.random().toString(36).slice(2, 9);
 
@@ -148,20 +152,51 @@ export function loop<Parameters = any>(
   });
 }
 
-export type RoleAction<Parameters> = Action<Parameters>;
+export function block<Parameters = any>(
+  elements: TemplateActionInput<Parameters, any>,
+  option?: {
+    hidden?: (() => boolean) | boolean;
+  }
+): Action<Parameters, any> {
+  return createAction(async function* (props) {
+    const generator = runActions(
+      elements,
+      props,
+      props.context.role === "none" && props.context.llm.isChat
+    );
 
-export type RoleTemplateFunction<Parameters> = (
+    for await (const element of generator) {
+      const oldHidden = element.hidden;
+      if (option?.hidden) {
+        element.hidden = function () {
+          return (
+            (typeof option.hidden === "function"
+              ? option.hidden()
+              : option.hidden) ||
+            (typeof oldHidden === "function" ? oldHidden() : oldHidden) ||
+            false
+          );
+        };
+      }
+      yield element;
+    }
+  });
+}
+
+export type RoleAction<Parameters, O extends Outputs> = Action<Parameters, O>;
+
+export type RoleTemplateFunction<Parameters, O extends Outputs> = (
   strings: TemplateStringsArray,
-  ...inputs: TemplateActionInput<Parameters>[]
-) => RoleAction<Parameters>;
+  ...inputs: TemplateActionInput<Parameters, O>[]
+) => RoleAction<Parameters, O>;
 
 export const system = createNewContext(() => ({
   role: "system",
-})) as RoleTemplateFunction<any>;
+})) as RoleTemplateFunction<any, any>;
 export const user = createNewContext(() => ({
   role: "user",
-})) as RoleTemplateFunction<any>;
+})) as RoleTemplateFunction<any, any>;
 export const assistant = createNewContext(() => ({
   role: "assistant",
-})) as RoleTemplateFunction<any>;
+})) as RoleTemplateFunction<any, any>;
 export const ai = createNewContext(() => ({}));

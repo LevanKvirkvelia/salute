@@ -26,28 +26,28 @@ export type State = {
   queue: Queue;
 };
 
-export type ActionProps<Parameters> = {
+export type ActionProps<Parameters, O extends Outputs> = {
   events: EventEmitter<any, any>;
   context: Readonly<Context>;
   state: State;
   params: Parameters;
-  outputs: Outputs;
+  outputs: O;
   currentPrompt: PromptStorage;
   nextString: string | undefined;
 };
 
-export type Action<Parameters, Return = void> = (
-  props: ActionProps<Parameters>
+export type Action<Parameters, O extends Outputs, Return = void> = (
+  props: ActionProps<Parameters, O>
 ) => AsyncGenerator<PromptElement, Return>;
 
-export function createAction<Parameters = any>(
+export function createAction<Parameters = any, O extends Outputs = any>(
   generator: (
-    props: ActionProps<Parameters>
+    props: ActionProps<Parameters, O>
   ) => AsyncGenerator<PromptElement, void, unknown>,
-  updateProps: (props: ActionProps<Parameters>) => ActionProps<Parameters> = (
-    props
-  ) => props
-): Action<Parameters> {
+  updateProps: (
+    props: ActionProps<Parameters, O>
+  ) => ActionProps<Parameters, O> = (props) => props
+): Action<Parameters, O> {
   return function (props) {
     return generator(updateProps(props));
   };
@@ -57,19 +57,20 @@ export type TemplateActionBasicInput =
   | string
   | number
   | AsyncGenerator<PromptElement, void>;
-export type TemplateActionInput<Parameters> =
+export type TemplateActionInput<Parameters, O extends Outputs> =
   | ((
-      props: ActionProps<Parameters>
+      props: ActionProps<Parameters, O>
     ) =>
-      | TemplateActionInput<Parameters>
-      | Promise<TemplateActionInput<Parameters>>)
+      | TemplateActionInput<Parameters, O>
+      | Promise<TemplateActionInput<Parameters, O>>)
   | TemplateActionBasicInput
-  | Action<Parameters>
-  | TemplateActionInput<Parameters>[];
+  | Action<Parameters, O>
+  | TemplateActionInput<Parameters, O>[];
 
-export async function* runActions<Parameters>(
-  action: TemplateActionInput<Parameters>,
-  props: ActionProps<Parameters>
+export async function* runActions<Parameters, O extends Outputs>(
+  action: TemplateActionInput<Parameters, O>,
+  props: ActionProps<Parameters, O>,
+  disableArray: boolean = false
 ): AsyncGenerator<PromptElement, void, unknown> {
   const { context, state } = props;
 
@@ -77,7 +78,7 @@ export async function* runActions<Parameters>(
   if (Array.isArray(element)) {
     const currentLoopId = Math.random().toString(36).slice(2);
     let i = 0;
-    const isInArray = context.role !== "none" || !context.outputAddress[0];
+    const isInArray = !disableArray && context.outputToArray;
     for (const _element of element) {
       if (isInArray) {
         state.loops[currentLoopId] = i++;
@@ -86,7 +87,7 @@ export async function* runActions<Parameters>(
           context: {
             ...context,
             currentLoopId: currentLoopId,
-            outputToArray: true,
+            outputToArray: true
           },
         });
       } else {
@@ -101,7 +102,7 @@ export async function* runActions<Parameters>(
     };
   } else if (typeof element === "function") {
     yield* runActions(element, props);
-  } else if (isPromise<TemplateActionInput<Parameters>>(element)) {
+  } else if (isPromise<TemplateActionInput<Parameters, O>>(element)) {
     const resolvedElement = await element;
     yield* runActions(resolvedElement, props);
   } else {
@@ -109,19 +110,19 @@ export async function* runActions<Parameters>(
   }
 }
 
-export function runTemplateActions<Parameters>({
+export function runTemplateActions<Parameters, O extends Outputs>({
   inputs,
   strings,
 }: {
   strings: TemplateStringsArray;
-  inputs: TemplateActionInput<Parameters>[];
+  inputs: TemplateActionInput<Parameters, O>[];
 }) {
   return async function* generator({
     context,
     currentPrompt,
     nextString,
     ...rest
-  }: ActionProps<Parameters>) {
+  }: ActionProps<Parameters, O>) {
     for (let i = 0; i < strings.length; i++) {
       if (strings[i]) {
         yield currentPrompt.getElement({
@@ -143,17 +144,17 @@ export function runTemplateActions<Parameters>({
   };
 }
 
-export type TemplateAction<Parameters> = (
+export type TemplateAction<Parameters, O extends Outputs> = (
   strings: TemplateStringsArray,
-  ...inputs: TemplateActionInput<Parameters>[]
-) => Action<Parameters>;
+  ...inputs: TemplateActionInput<Parameters, O>[]
+) => Action<Parameters, O>;
 
-export function createNewContext<Parameters>(
+export function createNewContext<Parameters, O extends Outputs>(
   getContext: () => Partial<Context>
-): TemplateAction<Parameters> {
+): TemplateAction<Parameters, O> {
   return function (
     strings: TemplateStringsArray,
-    ...inputs: TemplateActionInput<Parameters>[]
+    ...inputs: TemplateActionInput<Parameters, O>[]
   ) {
     const _strings = strings.map((s) => s.replace(/\n\s+/g, "\n"));
 

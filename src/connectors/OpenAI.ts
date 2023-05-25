@@ -7,7 +7,9 @@ import {
 } from "openai";
 import { createLLM } from ".";
 
-export async function* parseOpenAIStream(stream: NodeJS.ReadableStream) {
+export async function* parseOpenAIStream(
+  stream: NodeJS.ReadableStream
+): AsyncGenerator<[number, string], void> {
   let content = "";
   for await (const chunk of stream) {
     content += chunk.toString();
@@ -21,10 +23,10 @@ export async function* parseOpenAIStream(stream: NodeJS.ReadableStream) {
       const json = JSON.parse(data);
 
       if (json.choices[0]?.delta?.content) {
-        yield json.choices[0].delta.content.toString();
+        yield [0, json.choices[0].delta.content.toString()];
       }
       if (json.choices[0]?.text) {
-        yield json.choices[0]?.text.toString();
+        yield [0, json.choices[0]?.text.toString()];
       }
     }
   }
@@ -43,19 +45,23 @@ export const createOpenAICompletion = (
 
   return createLLM(async function* ({ prompt, ...props }) {
     try {
+      const { maxTokens, topP, stopRegex, llm, ...rest } = props;
       const response = await openAIApi.createCompletion(
         {
           ...options,
-          ...props,
+          ...rest,
           prompt: prompt.toString(),
-          top_p: props?.topP || options.top_p,
-          max_tokens: props?.maxTokens || options.max_tokens,
+          top_p: topP || options.top_p,
+          max_tokens: maxTokens || options.max_tokens,
+          stream: props.stream || undefined,
         },
         { responseType: props.stream ? "stream" : undefined }
       );
 
       if (!props.stream) {
-        yield response.data.choices[0].text;
+        for (const [i, c] of response.data.choices.entries()) {
+          yield [i, c.text || ""];
+        }
       } else {
         const stream = response.data as unknown as NodeJS.ReadableStream;
 
@@ -80,25 +86,28 @@ export const createOpenAIChatCompletion = (
 
   return createLLM(async function* ({ prompt, ...props }) {
     try {
+      const { maxTokens, topP, stopRegex, llm, ...rest } = props;
       const response = await openAIApi.createChatCompletion(
         {
           ...options,
-          ...props,
+          ...rest,
           messages: prompt.toChatCompletion(),
-          top_p: props?.topP || options.top_p,
-          max_tokens: props?.maxTokens || options.max_tokens,
+          top_p: topP || options.top_p,
+          max_tokens: maxTokens || options.max_tokens,
           stream: props.stream || undefined,
         },
         { responseType: props.stream ? "stream" : undefined }
       );
       if (!props.stream) {
-        yield response.data.choices[0].message?.content;
+        for (const [i, c] of response.data.choices.entries()) {
+          yield [i, c.message?.content || ""];
+        }
       } else {
         const stream = response.data as unknown as NodeJS.ReadableStream;
         yield* parseOpenAIStream(stream);
       }
     } catch (e) {
-      console.log(e.response)
+      console.log(e.response);
       throw e.response;
     }
   }, true);
@@ -106,12 +115,28 @@ export const createOpenAIChatCompletion = (
 
 export const gpt3 = createOpenAIChatCompletion(
   { model: "gpt-3.5-turbo" },
-  { apiKey: process.env.OPENAI_KEY }
+  {
+    apiKey: process.env.OPENAI_KEY,
+    basePath: "https://oai.hconeai.com/v1",
+    baseOptions: {
+      headers: {
+        "Helicone-Auth": "Bearer sk-s6usw5y-zaqea2i-xgtvt3y-ohh4w6a",
+      },
+    },
+  }
 );
 
 export const gpt4 = createOpenAIChatCompletion(
   { model: "gpt-4" },
-  { apiKey: process.env.OPENAI_KEY }
+  {
+    apiKey: process.env.OPENAI_KEY,
+    basePath: "https://oai.hconeai.com/v1",
+    baseOptions: {
+      headers: {
+        "Helicone-Auth": "Bearer sk-s6usw5y-zaqea2i-xgtvt3y-ohh4w6a",
+      },
+    },
+  }
 );
 
 export const davinci = createOpenAICompletion(

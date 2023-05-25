@@ -22,7 +22,7 @@ async function main() {
     { llm: davinci, stream: true }
   );
 
-  await agent({}, { render: true });
+  console.log(await agent({}, { render: true }));
 }
 
 main();

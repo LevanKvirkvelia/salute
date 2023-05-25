@@ -1,6 +1,16 @@
 import { EventEmitter } from "eventemitter3";
 import { PromptElement, PromptStorage } from "../PromptStorage";
-import { GenOptions, RoleAction, ai, gen, map } from "../actions/actions";
+import {
+  GenOptions,
+  RoleAction,
+  RoleTemplateFunction,
+  ai,
+  assistant,
+  gen,
+  map,
+  system,
+  user,
+} from "../actions/actions";
 import {
   Action,
   TemplateActionInput,
@@ -20,23 +30,23 @@ export type CreateLLMCompletionFn = (
     prompt: PromptStorage;
     stream: boolean;
   } & GenOptions
-) => AsyncGenerator<string, void>;
+) => AsyncGenerator<[number, string], void>;
 
 export type LLMCompletionFn = (
   props: {
     prompt: PromptStorage;
     stream: boolean;
   } & GenOptions
-) => AsyncGenerator<string, string>;
+) => AsyncGenerator<[number, string], void>;
 
 type GenFunc<T> = (
   name: T,
   options?: Omit<GenOptions, "stream">
-) => Action<any>;
-type MapFunc<T> = <Parameters = any>(
+) => Action<any, any>;
+type MapFunc<T> = (
   name: T,
-  elements: TemplateActionInput<Parameters>[]
-) => Action<Parameters>;
+  elements: TemplateActionInput<any, any>[]
+) => Action<any, any>;
 
 // type
 type IsEmptyObject<T> = keyof T extends never ? true : false;
@@ -66,7 +76,10 @@ type RecursiveOutputKeys<T> = T extends string | string[]
 type ActionFuncs<Parameters, O extends Outputs> = {
   gen: GenFunc<RecursiveOutputKeys<O>>;
   map: MapFunc<SubTypeKeysOnly<O>>;
-  ai: TemplateAction<Parameters>;
+  ai: TemplateAction<Parameters, O>;
+  user: RoleTemplateFunction<Parameters, O>;
+  system: RoleTemplateFunction<Parameters, O>;
+  assistant: RoleTemplateFunction<Parameters, O>;
 };
 
 export type AllowerOuputKeys<O extends Outputs> =
@@ -95,15 +108,15 @@ export type Agent<T extends AnyObject, O extends Outputs> = (
   next: () => Promise<string | null>;
 };
 
-type RolesLLMInput<Parameters extends AnyObject = any> = (
-  | RoleAction<Parameters>
-  | RoleAction<Parameters>[][]
-)[];
+type RolesLLMInput<
+  Parameters extends AnyObject = any,
+  O extends Outputs = any
+> = (RoleAction<Parameters, O> | RoleAction<Parameters, O>[][])[];
 
 type LLMInput<Parameters extends AnyObject, O extends Outputs> =
   | ((
-      props: ActionProps<Parameters> & ActionFuncs<Parameters, O>
-    ) => RolesLLMInput<Parameters> | Action<Parameters>)
+      props: ActionProps<Parameters, O> & ActionFuncs<Parameters, O>
+    ) => RolesLLMInput<Parameters> | Action<Parameters, O>)
   | RolesLLMInput<Parameters>;
 
 export function llm<
@@ -119,7 +132,7 @@ export function llm<
     const outputs = {} as O;
     const state: State = { loops: {}, queue: {} };
 
-    const actionPromps: ActionProps<Parameters> = {
+    const actionPromps: ActionProps<Parameters, O> = {
       events,
       outputs,
       params: parameters,
@@ -198,8 +211,10 @@ export function llm<
         return n.value.content;
       },
       run,
-      async then(cb) {
-        cb(await run());
+      then(cb) {
+        run()
+          .then((output) => cb(output))
+          .catch((e) => console.error(e));
       },
       events,
       outputs,
@@ -214,28 +229,16 @@ export const typedActionFuncs = <Parameters, O extends Outputs>(): ActionFuncs<
   O
 > => {
   return {
-    ai: ai as unknown as TemplateAction<Parameters>,
-    gen: gen as unknown as GenFunc<RecursiveOutputKeys<O>>,
-    map: map as unknown as MapFunc<SubTypeKeysOnly<O>>,
+    ai: ai as any,
+    gen: gen as any,
+    map: map as any,
+    user: user as any,
+    system: system as any,
+    assistant: assistant as any,
   };
 };
 
-export const createLLM = (func: CreateLLMCompletionFn, isChat: boolean) => {
-  const completion: LLMCompletionFn = (props) => {
-    async function* generator() {
-      let fullString = "";
-
-      for await (const chunk of func(props)) {
-        fullString += chunk.toString();
-        yield chunk.toString();
-      }
-
-      return fullString;
-    }
-
-    return generator();
-  };
-
+export const createLLM = (func: LLMCompletionFn, isChat: boolean) => {
   const llmWrapped = <
     Params extends AnyObject = any,
     Out extends Outputs = any
@@ -246,7 +249,7 @@ export const createLLM = (func: CreateLLMCompletionFn, isChat: boolean) => {
     return llm(actions, { ...context, llm: llmWrapped });
   };
 
-  llmWrapped.completion = completion;
+  llmWrapped.completion = func;
   llmWrapped.isChat = isChat;
 
   return llmWrapped;
