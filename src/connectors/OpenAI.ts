@@ -21,12 +21,11 @@ export async function* parseOpenAIStream(
 
       if (data.trim() === "[DONE]") return;
       const json = JSON.parse(data);
-
-      if (json.choices[0]?.delta?.content) {
-        yield [0, json.choices[0].delta.content.toString()];
-      }
-      if (json.choices[0]?.text) {
-        yield [0, json.choices[0]?.text.toString()];
+      if (!Array.isArray(json.choices)) break;
+      for (const choice of json.choices) {
+        if (choice?.delta?.content)
+          yield [choice.index, choice?.delta?.content.toString()];
+        if (choice.text) yield [choice.index, choice.text.toString()];
       }
     }
   }

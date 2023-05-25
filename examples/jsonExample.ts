@@ -7,7 +7,7 @@ async function main() {
     
         json
         {
-            "description": "${gen("description")}",
+            "description": "${gen("description", { stop: '"' })}",
             "name": "${gen("name", { stop: '"' })}",
             "age": ${gen("age", { stop: "," })},
             "class": "${gen("class", { stop: '"' })}",
@@ -16,7 +16,9 @@ async function main() {
             "items": [${[0, 0, 0].map(
               () => ai`"${gen("item", { stop: '"' })}",`
             )}]
-        }`
+        }`,
+
+    { stream: true }
   );
 
   const result = await jsonAgent({}, { render: true });

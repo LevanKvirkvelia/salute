@@ -78,7 +78,7 @@ export async function* runActions<Parameters, O extends Outputs>(
   if (Array.isArray(element)) {
     const currentLoopId = Math.random().toString(36).slice(2);
     let i = 0;
-    const isInArray = !disableArray && context.outputToArray;
+    const isInArray = !disableArray;
     for (const _element of element) {
       if (isInArray) {
         state.loops[currentLoopId] = i++;
@@ -87,7 +87,7 @@ export async function* runActions<Parameters, O extends Outputs>(
           context: {
             ...context,
             currentLoopId: currentLoopId,
-            outputToArray: true
+            outputToArray: true,
           },
         });
       } else {

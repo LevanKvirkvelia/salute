@@ -63,10 +63,6 @@ export const gen = (name: string, options?: GenOptions): Action<any, any> => {
     context,
     events,
   }) {
-    if (options?.n && context.stream) {
-      throw new Error("Cannot use n with stream");
-    }
-
     const llmStream = context.llm.completion({
       ...options,
       prompt: currentPrompt,
@@ -78,7 +74,7 @@ export const gen = (name: string, options?: GenOptions): Action<any, any> => {
 
     for await (const result of llmStream) {
       fullStrings[result[0]] += result[1];
-      if (context.stream) {
+      if (context.stream && result[0] === 0) {
         yield currentPrompt.getLLMElement(result[1]);
       }
     }

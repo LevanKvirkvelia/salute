@@ -16,8 +16,6 @@ async function main() {
         "answers",
         QUESTIONS.map((item) => ai`Q: ${item}\nA:${gen("answer")}\n`)
       )}
-
-      Thank You!
       `,
     { llm: davinci, stream: true }
   );
