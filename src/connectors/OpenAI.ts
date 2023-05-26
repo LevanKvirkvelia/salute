@@ -114,28 +114,12 @@ export const createOpenAIChatCompletion = (
 
 export const gpt3 = createOpenAIChatCompletion(
   { model: "gpt-3.5-turbo" },
-  {
-    apiKey: process.env.OPENAI_KEY,
-    basePath: "https://oai.hconeai.com/v1",
-    baseOptions: {
-      headers: {
-        "Helicone-Auth": "Bearer sk-s6usw5y-zaqea2i-xgtvt3y-ohh4w6a",
-      },
-    },
-  }
+  { apiKey: process.env.OPENAI_KEY }
 );
 
 export const gpt4 = createOpenAIChatCompletion(
   { model: "gpt-4" },
-  {
-    apiKey: process.env.OPENAI_KEY,
-    basePath: "https://oai.hconeai.com/v1",
-    baseOptions: {
-      headers: {
-        "Helicone-Auth": "Bearer sk-s6usw5y-zaqea2i-xgtvt3y-ohh4w6a",
-      },
-    },
-  }
+  { apiKey: process.env.OPENAI_KEY }
 );
 
 export const davinci = createOpenAICompletion(
