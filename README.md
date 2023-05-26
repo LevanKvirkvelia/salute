@@ -1,13 +1,13 @@
-# Salute - a light-weight JS library to build AI Agents
-
-> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and React had a baby. Everything, at some point, starts running on JavaScript, it's now the turn of AI agents
-
 <div align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/LevanKvirkvelia/salute/assets/5202843/29ea7a16-f92d-4780-bb68-d27ab1dd98dd">
   <img alt="salute" src="https://github.com/LevanKvirkvelia/salute/assets/5202843/29ea7a16-f92d-4780-bb68-d27ab1dd98dd" width=250">
 </picture>
 </div>
+
+# Salute - a light-weight JS library to build AI Agents
+
+> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and React had a baby. Everything, at some point, starts running on JavaScript, it's now the turn of AI agents
 
 
 ### Features
