@@ -7,23 +7,25 @@
 
 # Salute - a light-weight JS library to build AI Agents
 
-> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and React had a baby. Everything, at some point, starts running on JavaScript, it's now the turn of AI agents
+> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and React had a baby. 
+Everything at some point will run on JavaScript, it's the turn of the AI agents.
+
 
 
 ### Features
-- Minimal overhead. We aim to keep our code base small.
-- Low-level control, matching the way LLM actually processes the text
-- No hidden prompts, what you see is what you get
-- React-style: composability and "functional" agents.
+- Minimal overhead, limited number of abstractions, small code base.
+- Low-level control, matching the way LLM actually processes the text.
+- No hidden prompts, what you see is what you get.
+- React style composability and "functional" agents.
 - JavaScript features that you are already familiar with, providing a faster learning curve.
-- Type-checking (written on TypeScript), linting, syntax highlighting, and auto-completion.
+- Type-checking, linting, syntax highlighting, and auto-completion.
 
 <br/>
 
 TLDR: build powerful agents with good syntax and no overhead.
 
 
-## Installation
+### Installation
 
 ```bash
 npm install salutejs
@@ -33,9 +35,101 @@ yarn add salutejs
 pnpm add salutejs
 ```
 
+Then set `process.env.OPENAI_KEY` to your OpenAI API key.
 
-## Basic Usage
+### Index
+1. Basic Chat GPT Usage
+    1. Chat Sequences
+    2. Using Arrays
+2. Advanced usage
 
+## Basic usage
+### Chat Sequences
+
+Salute has nice wrappers for chat completion. In the example below, you can see the power of `gen`. It allows you to easily code chat sequences without having a lot of boilerplate.
+
+Also, you can see how `system`, `user`, and `assistant` are used to define the role of the message.
+```ts
+import { gpt3, gen, assistant, system, user } from "salute";
+
+const agent = gpt3(
+  ({ params })=>[
+    system`You are a helpful and terse assistant.`,
+    user`
+      I want a response to the following question: 
+      ${params.query}
+      Don't answer the question yet.
+      Name 3 world-class experts (past or present) who would be great at answering this?`,
+    assistant`${gen("expertNames")}`,
+    user`
+      Great, now please answer the question as if these experts had collaborated in writing a joint anonymous answer.`,
+    assistant`${gen("answer")}`,
+  ]
+);
+
+const result = await agent(
+  { query: `How can I be more productive?` },
+  { render: true } // will render the chat sequence in the console
+);
+
+console.log(result);
+/*
+{
+  expertNames: "Elon Musk, Bill Gates, and Jeff Bezos...",
+  answer: "You can be more productive by..."
+}
+*/
+```
+
+### Arrays in Chat Sequences
+
+You can pass an array of prompts to `gen` and it will automatically generate an array of responses. This is useful for generating multiple responses to a single prompt.
+
+```ts
+import { gpt3, assistant, system, user, gen } from "salutejs";
+
+const AI_NAME = "Midjourney";
+
+const QUESTIONS = [
+  `Main elements with specific imagery details`,
+  `Next, describe the environment`,
+  `Now, provide the mood / feelings and atmosphere of the scene`,
+  `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
+];
+
+const agent = gpt3(({ params }) => [
+  system`
+    Act as a prompt generator for a generative AI called "${AI_NAME}". 
+    ${AI_NAME} AI generates images based on given prompts.
+  `,
+  user`
+    My query is: ${params.query}
+    Generate descriptions about my query, in realistic photographic style, for an Instagram post. 
+    The answer should be one sentence long, starting directly with the description.
+  `,
+
+  QUESTIONS.map((item) => [
+    user`${item}`, 
+    assistant`${gen("answer")}`
+  ]),
+]);
+
+const result = await agent(
+  { query: `A picture of a dog` },
+  { render: true }
+);
+
+console.log(result);
+
+/*
+{
+  answer: [ "Answer 1", "Answer 2", "Answer 3", "Answer 4" ]
+}
+*/
+```
+
+
+### Davinci model
 Below is a simple example of how to use `salutejs` to generate specific parts of text. By allowing you to control when you need to generate inside the prompt - you can have a more controlled output.
 ```ts
 // Set process.env.OPENAI_KEY to your OpenAI API key
@@ -65,62 +159,7 @@ const result = await proverbAgent({
 
 <img width="712" alt="CleanShot 2023-05-22 at 19 21 16@2x" src="https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/6c3c4181-09bf-4556-9776-343ddb949d6e">
 
-<details>
-<summary>Text output</summary>
 
-```bash
-Tweak this proverb to apply to model instructions instead.
-Where there is no guidance, a people falls,
-but in an abundance of counselors there is safety.
-- Proverbs 11:14
-UPDATED
-Where there is no guidance, a model fails,
-but in an abundance of instructions there is safety.
-- GPT  11:14
-----------------------------------------
-{
-  rewrite: ', a model fails,\nbut in an abundance of instructions there is safety.',
-  chapter: ' 11',
-  verse: '14'
-}
-```
-</details>
-
-
-
-## Chat
-
-Salute has nice wrappers for chat completion. You can use them like shown below.
-
-In the example below, you can see the power of `map` and `gen` in generating a specific schema.
-
-```ts
-import { gpt3, gen, system, user, assistant } from "salutejs"
-
-const QUESTIONS = [
-  `Main elements with specific imagery details`,
-  `Next, describe the environment`,
-  `Now, provide the mood / feelings and atmosphere of the scene`,
-  `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
-];
-
-const agent = gpt3(({ params }) => [
-  system`
-      Act as a prompt generator for a generative AI called "${AI_NAME}".
-      ${AI_NAME} AI generates images based on given prompts.
-  `,
-  user`
-      My query is:
-      Generate descriptions about my query, in realistic photographic style, for an Instagram post.
-      The answer should be one sentence long, starting directly with the description.
-  `,
-  QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
-]);
-
-agent({
-  query: `A picture of a dog`,
-});
-```
 
 ![CleanShot 2023-05-22 at 19 26 20](https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/0556ef29-0249-4e80-8936-69584997a3d8)
 
