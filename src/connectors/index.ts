@@ -39,11 +39,11 @@ export type LLMCompletionFn = (
   } & GenOptions
 ) => AsyncGenerator<[number, string], void>;
 
-type GenFunc<T> = (
-  name: T,
+export type GenFunc<T extends Outputs> = (
+  name: RecursiveOutputKeys<T>,
   options?: Omit<GenOptions, "stream">
 ) => Action<any, any>;
-type MapFunc<T> = (
+export type MapFunc<T> = (
   name: T,
   elements: TemplateActionInput<any, any>[]
 ) => Action<any, any>;
@@ -57,13 +57,13 @@ type SubTypeKeysOnly<O extends Outputs> = IsEmptyObject<O> extends true
       [K in keyof O]: O[K] extends Outputs[] ? K : never;
     }[keyof O];
 
-type NonObjectKeys<T> = {
+export type NonObjectKeys<T> = {
   [K in keyof T]: T[K] extends string | string[] ? K : never;
 }[keyof T & string];
 
 type ArrayElementType<T> = T extends (infer E)[] ? E : never;
 
-type RecursiveOutputKeys<T> = T extends string | string[]
+export type RecursiveOutputKeys<T> = T extends string | string[]
   ? never
   : T extends any[]
   ? RecursiveOutputKeys<ArrayElementType<T>>
@@ -73,8 +73,17 @@ type RecursiveOutputKeys<T> = T extends string | string[]
           [K in keyof T]: RecursiveOutputKeys<T[K]>;
         }[keyof T & string];
 
-type ActionFuncs<Parameters, O extends Outputs> = {
-  gen: GenFunc<RecursiveOutputKeys<O>>;
+export type Keys<T extends Outputs, K = keyof T> = K extends string
+  ? T[K] extends string
+    ? K
+    : T[K] extends Outputs
+    ? K | Keys<Extract<T[K], Outputs>>
+    : never
+  : never;
+
+
+export type ActionFuncs<Parameters, O extends Outputs> = {
+  gen: GenFunc<O>;
   map: MapFunc<SubTypeKeysOnly<O>>;
   ai: TemplateAction<Parameters, O>;
   user: RoleTemplateFunction<Parameters, O>;

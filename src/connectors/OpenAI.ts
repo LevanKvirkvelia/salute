@@ -66,7 +66,7 @@ export const createOpenAICompletion = (
 
         yield* parseOpenAIStream(stream);
       }
-    } catch (e) {
+    } catch (e: any) {
       throw e.response;
     }
   }, false);
@@ -105,7 +105,7 @@ export const createOpenAIChatCompletion = (
         const stream = response.data as unknown as NodeJS.ReadableStream;
         yield* parseOpenAIStream(stream);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.log(e.response);
       throw e.response;
     }

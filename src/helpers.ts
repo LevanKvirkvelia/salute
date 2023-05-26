@@ -1,6 +1,5 @@
-import chalk = require("chalk");
+import chalk from "chalk";
 import { PromptElement, PromptStorage } from "./PromptStorage";
-import { Outputs } from "./actions/primitives";
 
 export function printChatElement(element: PromptElement) {
   switch (element.source) {
