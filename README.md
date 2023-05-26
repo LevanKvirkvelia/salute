@@ -1,67 +1,65 @@
-# Sensei
+# Salute - a light-weight JS library to build AI Agents
+
+> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and React had a baby. Everything, at some point, starts running on JavaScript, it's now the turn of AI agents
+
+<div align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/LevanKvirkvelia/salute/assets/5202843/29ea7a16-f92d-4780-bb68-d27ab1dd98dd">
+  <img alt="guidance" src="https://github.com/LevanKvirkvelia/salute/assets/5202843/29ea7a16-f92d-4780-bb68-d27ab1dd98dd" width=250">
+</picture>
+</div>
 
 
+### Features
+- Minimal overhead. We aim to keep our code base small.
+- Low-level control, matching the way LLM actually processes the text
+- No hidden prompts, what you see is what you get
+- React-style: composability and "functional" agents.
+- JavaScript features that you are already familiar with, providing a faster learning curve.
+- Type-checking (written on TypeScript), linting, syntax highlighting, and auto-completion.
 
-<div align="center"><picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/9ee70330-5860-4033-b93b-ed8b721800e6">
-  
-  <img alt="guidance" src="https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/9ee70330-5860-4033-b93b-ed8b721800e6" width="150">
-</picture></div>
 <br/>
 
-A library to let you write powerful prompts heavily inspired by [guidance](https://github.com/microsoft/guidance) but with good syntax.
-
-The core idea here is to leverage the power of a tool like guidance but giving you the default language features for better control flow, iteration and overall better syntax.
+TLDR: build powerful agents with good syntax and no overhead.
 
 
 ## Installation
 
 ```bash
-npm install sensei
+npm install salutejs
 
-yarn add sensei
+yarn add salutejs
 
-pnpm add sensei
+pnpm add salutejs
 ```
 
 
 ## Basic Usage
 
-Below is a simple example of how to use `sensei` to generate specific parts of text. By allowing you to control when you need to generate inside the prompt - you can have a more controlled output.
+Below is a simple example of how to use `salutejs` to generate specific parts of text. By allowing you to control when you need to generate inside the prompt - you can have a more controlled output.
 ```ts
 // Set process.env.OPENAI_KEY to your OpenAI API key
-import { davinci } from "sensei"
+import { davinci, ai, gen } from "salutejs"
 
-const proverbAgent = davinci<
-{
-    proverb: string;
-    book: string;
-    chapter: number;
-    verse: number;
-},
-{
-    rewrite: string;
-    chapter: string;
-    verse: string;
-}
->(
-({ ai, params, gen }) => ai`
-    Tweak this proverb to apply to model instructions instead.
-    ${params.proverb}
-    - ${params.book} ${params.chapter}:${params.verse}
+const proverbAgent = davinci(
+  ({ params }) => ai`
+      Tweak this proverb to apply to model instructions instead.
+      
+      ${params.proverb}
+      - ${params.book} ${params.chapter}:${params.verse}
 
-    UPDATED
-    Where there is no guidance${gen("rewrite", {stop: "\n"})}
-    - GPT ${gen("chapter")}:${gen("verse")}
-`
+      UPDATED
+      Where there is no guidance${gen("rewrite", {stop: "\n"})}
+      - GPT ${gen("chapter")}:${gen("verse")}
+  `
 );
 
 const result = await proverbAgent({
-proverb:
-    "Where there is no guidance, a people falls,\nbut in an abundance of counselors there is safety.",
-book: "Proverbs",
-chapter: 11,
-verse: 14,
+  proverb:
+      "Where there is no guidance, a people falls,\nbut in an abundance of counselors there is safety.",
+  book: "Proverbs",
+  chapter: 11,
+  verse: 14,
 });
 ```
 
@@ -92,49 +90,36 @@ but in an abundance of instructions there is safety.
 
 ## Chat
 
-Sensi has nice wrappers for chat completion. You can use them like shown below.
+Salute has nice wrappers for chat completion. You can use them like shown below.
 
 In the example below, you can see the power of `map` and `gen` in generating a specific schema.
 
 ```ts
-import { gpt3, system, user, assistant } from "sensei"
+import { gpt3, gen, system, user, assistant } from "salutejs"
 
 const QUESTIONS = [
-    `Main elements with specific imagery details`,
-    `Next, describe the environment`,
-    `Now, provide the mood / feelings and atmosphere of the scene`,
-    `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
-  ];
+  `Main elements with specific imagery details`,
+  `Next, describe the environment`,
+  `Now, provide the mood / feelings and atmosphere of the scene`,
+  `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
+];
 
-const agent = gpt3<
-{ query: string },
-{
-    lol: { a: string }[];
-    answer: string[];
-    random: string;
-}
->(({ params, gen, map }) => [
-system`
-    Act as a prompt generator for a generative AI called "${AI_NAME}".
-    ${AI_NAME} AI generates images based on given prompts.
-`,
-user`
-    My query is:
-    Generate descriptions about my query, in realistic photographic style, for an Instagram post.
-    The answer should be one sentence long, starting directly with the description.
-`,
-
-map(
-    "lol",
-    QUESTIONS.map((item) => [user`${item}`, assistant`${gen("a")}`])
-),
-
-QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
+const agent = gpt3(({ params }) => [
+  system`
+      Act as a prompt generator for a generative AI called "${AI_NAME}".
+      ${AI_NAME} AI generates images based on given prompts.
+  `,
+  user`
+      My query is:
+      Generate descriptions about my query, in realistic photographic style, for an Instagram post.
+      The answer should be one sentence long, starting directly with the description.
+  `,
+  QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
 ]);
 
 agent({
-    query: `A picture of a dog`,
-  });
+  query: `A picture of a dog`,
+});
 ```
 
 ![CleanShot 2023-05-22 at 19 26 20](https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/0556ef29-0249-4e80-8936-69584997a3d8)
@@ -175,10 +160,10 @@ The library is primarily designed to work with `openai` models but it is fully b
 ### OpenAI Custom Config
 
 ```ts
-import {createChatGPT, createOpenAICompletion} from 'sensei'
+import {createChatGPT, createOpenAICompletion} from 'salutejs'
 
 // Use createChatGPT to create chat completions
-const gpt4 = createOpenAICompletion({
+const gpt4 = createOpenAIChatCompletion({
     model: "gpt-4",
     temperature : 0.9,
     // stream: true is always set (for now)
