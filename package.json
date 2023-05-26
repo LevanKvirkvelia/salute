@@ -1,6 +1,6 @@
 {
-  "name": "guidanceai",
-  "version": "0.0.1",
+  "name": "salutejs",
+  "version": "0.0.1-beta3",
   "description": "Node.js library for the OpenAI API",
   "repository": {
     "type": "git",
@@ -36,5 +36,8 @@
     "tsup": "^6.7.0",
     "tsx": "^3.12.7",
     "typescript": "^5.0.4"
+  },
+  "directories": {
+    "example": "examples"
   }
 }
