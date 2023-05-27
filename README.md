@@ -116,7 +116,6 @@ const agent = gpt3(
       Here is a list of tables in the database:
       ----
       ${fetchTableSchemaAsAString(false)/* we pass a promise, but we can also return a function that returns a promise */}
-      }
       ----
       Column names must be quoted with double quotes, e.g. "column_name". 
       Dont use aggregate functions without GROUP BY.
