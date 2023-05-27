@@ -79,7 +79,7 @@ console.log(result);
 ```
 
 ### Creating Chat Sequences
-The `gen` function saves the output as part of the prompt for the next `gen` function, making it easy to create chat sequences with minimal boilerplate. To improve the model's response, let's add another two steps to the chat sequence.
+To improve the model's response, let's add another two steps to the chat sequence. The `gen` function saves the output as part of the prompt for the next `gen` function, making it easy to create chat sequences with minimal boilerplate. 
 
 ```ts
 import { gpt3, gen, assistant, system, user } from "salute";
@@ -156,7 +156,8 @@ const agent = gpt3(
     user`
       Here is the result of your query:
       -----
-      ${runSQL /* here we pass a function, it will be called when the sequence reaches this point */}
+      ${runSQL}
+      /-- here we pass a function, it will be called when the sequence reaches this point --/
       /-- The example above is equivalent to: --/
       ${async ({outputs})=>{ 
         return JSON.stringify(await db.run(outputs.sqlQuery))
@@ -232,44 +233,9 @@ console.log(result);
 ```
 ![CleanShot 2023-05-22 at 19 26 20](https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/0556ef29-0249-4e80-8936-69584997a3d8)
 
-### Davinci model
-Below is a simple example of how to use `salutejs` to generate specific parts of text. By allowing you to control when you need to generate inside the prompt - you can have a more controlled output.
-```ts
-// Set process.env.OPENAI_KEY to your OpenAI API key
-import { davinci, ai, gen } from "salutejs"
 
-const proverbAgent = davinci(
-  ({ params }) => ai`
-      Tweak this proverb to apply to model instructions instead.
-      
-      ${params.proverb}
-      - ${params.book} ${params.chapter}:${params.verse}
-
-      UPDATED
-      Where there is no guidance${gen("rewrite", {stop: "\n"})}
-      - GPT ${gen("chapter")}:${gen("verse")}
-  `
-);
-
-const result = await proverbAgent({
-  proverb:
-      "Where there is no guidance, a people falls,\nbut in an abundance of counselors there is safety.",
-  book: "Proverbs",
-  chapter: 11,
-  verse: 14,
-});
-```
-
-<img width="712" alt="CleanShot 2023-05-22 at 19 21 16@2x" src="https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/6c3c4181-09bf-4556-9776-343ddb949d6e">
-
-
-
-
-
-## JSON Example
-
-
-Here is an example of getting the LLM to generate inference while perfectly maintaining the schema you want without any extra prompt engineering on schema or many examples.
+### Davinci model JSON Example
+Here is an example of getting the LLM to generate inference while perfectly maintaining the schema you want without any extra prompt engineering on schema or many examples. `salutejs` will generate text only in the places where the `gen` function is called.
 
 ```ts
 const jsonAgent = davinci(
@@ -292,6 +258,90 @@ const jsonAgent = davinci(
 ![CleanShot 2023-05-22 at 19 47 34](https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/e98caacf-754a-407e-ac5b-d0f7ff0c25fa)
 
 
+## Advanced Examples
+
+### Using `block` to control prompt context and `n` to generate multiple completions
+Here we use `block` to hide parts of the sequence until the condition is met, so you can control prompt context that will be sent with next `gen` and reduce the price of the API call.
+
+You can also pass options to `gen` to control the generated text. The `n` option defines how many completions to generate. If `n` is greater than 1, the output will be an array of strings, but only the first string will be used in the prompt for the next `gen`. Using `n` speeds up the generation process, because you can generate multiple completions with one API call.
+
+```ts
+const agent = gpt4(
+  ({ params, outputs }) => [
+    system`You are a helpful assistant`,
+    user`I want to ${params.goal}.`,
+    block(
+      [
+        user`
+          Can you please generate one option for how to accomplish this?
+          Please make the option very short, at most one line.
+        `,
+        assistant`${gen("option", { temperature: 1, maxTokens: 500, n: 5 })}`,
+      ],
+      { hidden: () => outputs.option?.length > 0 }
+    ),
+    block(
+      [
+        user`
+          Can you please comment on the pros and cons of each of the following options, and then pick the best option?
+          ---
+          ${({ outputs }) =>
+            outputs.option.map((o, i) => `Option ${i}: ${o}`).join("\n")}
+          ---
+          Please discuss each option very briefly (one line for pros, one for cons), and end by saying Best=X, where X is the best option.
+        `,
+        assistant`${gen("prosandcons", { temperature: 0, maxTokens: 500 })}`,
+      ],
+      { hidden: () => !!outputs.prosandcons }
+    ),
+    user`
+      Here is my plan:
+      ${({ outputs }) =>
+        outputs.option[+(outputs.prosandcons.match(/Best=(\d+)/)?.[1] || 0)]}
+      Please elaborate on this plan, and tell me how to best accomplish it.
+    `,
+    assistant`${gen("plan", { maxTokens: 500 })}`,
+  ],
+  { stream: true }
+);
+
+const result = await agent({ goal: "read more books" }, { render: true });
+
+console.log(result);
+```
+
+### Using TypeScript
+You can use TypeScript to define the type of the `params` and `outputs` objects. This will give you autocomplete and type checking in your IDE. Please note, that you would need to use `ai`, `gen` and other functions from the function argument, not from the imported module.
+
+```ts
+const proverbAgent = davinci<
+  { proverb: string; book: string; chapter: number; verse: number },
+  { verse: string; rewrite: string; chapter: string }
+>(
+  ({ params, gen, ai }) => ai`
+    Tweak this proverb to apply to model instructions instead.
+    ${params.proverb}
+    - ${params.book} ${params.chapter}:${params.verse}
+
+    UPDATED
+    Where there is no guidance${gen("rewrite", { temperature: 0 })}
+    - GPT ${gen("chapter", { temperature: 0 })}:${gen("verse")}
+  `
+);
+
+const result = await proverbAgent(
+  {
+    proverb:
+      "Where there is no guidance, a people falls,\nbut in an abundance of counselors there is safety.",
+    book: "Proverbs",
+    chapter: 11,
+    verse: 14,
+  },
+  { render: true }
+);
+
+console.log(result);
+```
 
 ## Config
 
