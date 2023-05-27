@@ -42,7 +42,6 @@ Then set `process.env.OPENAI_KEY` to your OpenAI API key.
 
 ## Quick Start
 This page will give you an introduction to the 80% of Salute concepts and features that you will use on a daily basis.
-Salute designed to build agents in declarative conversational flow, so it is easy to understand what is going on, and meets the way LLMs actually work.
 1. Quick Start
     1. Chat Sequences
     2. Using Arrays
@@ -50,7 +49,7 @@ Salute designed to build agents in declarative conversational flow, so it is eas
 
 ### Simple Chat Completion
 Salute agents are sequences executing in order. `system`, `user`, and `assistant` define message roles.
-When encountering a `gen` function, it sends the current prompt to the LLM, storing the result for `output` by the key provided as the first argument.
+If the sequence encounters a `gen` function, it will send the present prompt to the LLM, the returned value will be stored in the output object under the key provided as the first argument.
 
 
 ```ts
