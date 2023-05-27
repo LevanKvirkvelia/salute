@@ -79,8 +79,7 @@ console.log(result);
 ```
 
 ### Creating Chat Sequences
- 
-`gen` function stores the output as a part of the prompt for next `gen` function. This allows for easy chat sequence creation with minimal boilerplate. Now let's add one more step to the chat sequence, so we align the model to generate a better answer.
+The `gen` function saves the output as part of the prompt for the next `gen` function, making it easy to create chat sequences with minimal boilerplate. To improve the model's response, let's add another two steps to the chat sequence.
 
 ```ts
 import { gpt3, gen, assistant, system, user } from "salute";
