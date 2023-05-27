@@ -10,7 +10,7 @@
 <!-- [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
 ![GitHub license](https://img.shields.io/github/license/LevanKvirkvelia/salute) -->
 
-> Salute is a library, inspired by Microsoft Guidance and React, that allows for building powerful AI agents with low overhead and familiar JavaScript syntax.
+> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby.
 
 
 
