@@ -51,11 +51,11 @@ Salute designed to build agents in declarative conversational flow, so it is eas
 2. Advanced usage
 
 ### Creating Chat GPT Agents
-Salute agents are sequences that run from top to bottom. When Salute meets `gen` function, it sends the current prompt to the LLM, and puts the result in the output by the given key, this result will be also used as a part of the prompt for the next `gen` function.
+Salute agents are sequences executing in order. 
 
-With the power of `gen` you can build chat sequences without having a lot of boilerplate code. If your sequense work in ChatGPT, you can easily reimplement them with Salute.
+When encountering a `gen` function, it sends the current prompt to the LLM, storing the result for `output` and as a part of the next `gen`'s prompt. This allows for easy chat sequence creation with minimal boilerplate. If a sequence works in ChatGPT, it can be reimplemented with Salute. 
 
-`system`, `user`, and `assistant` are used to define the role of the message. 
+`system`, `user`, and `assistant` define message roles.
 
 
 ```ts
@@ -96,14 +96,14 @@ console.log(result);
 ```
 
 ### Creating and nesting components
-Salute components are functions that return a chat sequence, promise, string, Generator, or an array or promise of any of these things. This makes it easy to split the code into smaller components.
+Salute components are functions that return a chat sequence, string, AsyncGenerator, or an array or promise of any of these things. This makes it easy to split the code into smaller components.
 
 ```ts
 import { gpt3, gen, assistant, system, user } from "salutejs";
 import { db } from "a-random-sql-library";
 
 // example of a component
-async function fetchTableSchemaAsAString(withSchema: boolean){
+async function fetchTableSchemaAsAString(){
   const listOfTables = await db.tables();
   return listOfTables.map(table=>`Table ${table.name} has columns ${table.columns.join(", ")}`).join("\n");
 }
@@ -113,13 +113,12 @@ const agent = gpt3(
     system`You are a helpful that answers questions by writing SQL queries.`,
     user`
       Here is my question: ${params.query}
+
       Here is a list of tables in the database:
       ----
       ${fetchTableSchemaAsAString(false)/* we pass a promise, but we can also return a function that returns a promise */}
       ----
       Column names must be quoted with double quotes, e.g. "column_name". 
-      Dont use aggregate functions without GROUP BY.
-      Convert type if needed.
       Generate a Clickhouse SQL query that answers the question above.
       Return only SQL query, no other text. 
     `,
