@@ -48,12 +48,9 @@ Salute designed to build agents in declarative conversational flow, so it is eas
     2. Using Arrays
 2. Advanced usage
 
-### Creating Chat GPT Agents
-Salute agents are sequences executing in order. 
-
-When encountering a `gen` function, it sends the current prompt to the LLM, storing the result for `output` and as a part of the next `gen`'s prompt. This allows for easy chat sequence creation with minimal boilerplate. If a sequence works in ChatGPT, it can be reimplemented with Salute. 
-
-`system`, `user`, and `assistant` define message roles.
+### Simple Chat Completion
+Salute agents are sequences executing in order. `system`, `user`, and `assistant` define message roles.
+When encountering a `gen` function, it sends the current prompt to the LLM, storing the result for `output` by the key provided as the first argument.
 
 
 ```ts
@@ -62,8 +59,36 @@ import { gpt3, gen, assistant, system, user } from "salute";
 const agent = gpt3(
   ({ params })=>[
     system`You are a helpful and terse assistant.`,
-    user`Hi!`,
-    assistant`Hello, how can I help you?`,
+    user`
+      I want a response to the following question: 
+      ${params.query}
+      
+      Please answer the question as if experts had collaborated in writing an anonymous answer.
+    `,
+    assistant`${gen("answer")}`,
+  ]
+);
+
+const result = await agent({ query: `How can I be more productive?` });
+
+console.log(result);
+/*
+{
+  answer: "You can be more productive by...",
+}
+*/
+```
+
+### Creating Chat Sequences
+ 
+`gen` function stores the output as a part of the prompt for next `gen` function. This allows for easy chat sequence creation with minimal boilerplate. Now let's add one more step to the chat sequence, so we align the model to generate a better answer.
+
+```ts
+import { gpt3, gen, assistant, system, user } from "salute";
+
+const agent = gpt3(
+  ({ params })=>[
+    system`You are a helpful and terse assistant.`,
     user`
       I want a response to the following question: 
       ${params.query}
@@ -96,7 +121,7 @@ console.log(result);
 ```
 
 ### Creating and nesting components
-Salute components are functions returning chat sequences, strings, AsyncGenerators, or an array or promise of these. This makes it easy to split the code into smaller components.
+Salute components are similar to React components. They are functions returning Salute primitives, such as actions (e.g. `gen`, `system`, `user`, `assistant`), AsyncGenerators, strings, or arrays and promises of these. The function will be called when sequence reaches it, so you can use the current outputs in the function. 
 
 ```ts
 import { gpt3, gen, assistant, system, user } from "salutejs";
@@ -108,6 +133,10 @@ async function fetchTableSchemaAsAString(){
   return listOfTables.map(table=>`Table ${table.name} has columns ${table.columns.join(", ")}`).join("\n");
 }
 
+async function runSQL({outputs}){ 
+  return JSON.stringify(await db.run(outputs.sqlQuery))
+}
+
 const agent = gpt3(
   ({ params })=>[
     system`You are a helpful that answers questions by writing SQL queries.`,
@@ -116,7 +145,10 @@ const agent = gpt3(
 
       Here is a list of tables in the database:
       ----
-      ${fetchTableSchemaAsAString(false)/* we pass a promise, but we can also return a function that returns a promise */}
+      ${
+        fetchTableSchemaAsAString()
+        /* here we pass a promise, not a function, it starts executing at the beginning of the sequence */
+      }
       ----
       Column names must be quoted with double quotes, e.g. "column_name". 
       Generate a Clickhouse SQL query that answers the question above.
@@ -126,8 +158,9 @@ const agent = gpt3(
     user`
       Here is the result of your query:
       -----
+      ${runSQL /* here we pass a function, it will be called when the sequence reaches this point */}
+      /-- The example above is equivalent to: --/
       ${async ({outputs})=>{ 
-        // this returns a function that returns a promise. So you can use current outputs in the function.
         return JSON.stringify(await db.run(outputs.sqlQuery))
       }}
       -----
