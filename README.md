@@ -78,6 +78,7 @@ console.log(result);
 }
 */
 ```
+![Simple Sequence](https://github.com/LevanKvirkvelia/salute/assets/5202843/4a9e0479-d876-4185-9470-264d33ec0840)
 
 ### Creating Chat Sequences
 To improve the model's performance, let's add another two steps to the chat sequence. The `gen` function saves the output as part of the prompt for the next `gen` function, making it easy to create chat sequences with minimal boilerplate. 
