@@ -5,10 +5,13 @@
 </picture>
 </div>
 
-# Salute - a light-weight JS library to build AI Agents
+# Salute - a simple declarative library to build AI Agents
+  
+<!-- [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
+![GitHub license](https://img.shields.io/github/license/LevanKvirkvelia/salute) -->
 
-> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and React had a baby. 
-Everything at some point will run on JavaScript, it's the turn of the AI agents.
+> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby. 
+Everything will run on JavaScript at some point, it's now the turn of the AI agents.
 
 
 
@@ -37,24 +40,32 @@ pnpm add salutejs
 
 Then set `process.env.OPENAI_KEY` to your OpenAI API key.
 
-### Index
-1. Basic Chat GPT Usage
+
+
+## Quick Start
+This page will give you an introduction to the 80% of Salute concepts and features that you will use on a daily basis.
+Salute designed to build agents in declarative conversational flow, so it is easy to understand what is going on, and meets the way LLMs actually work.
+1. Quick Start
     1. Chat Sequences
     2. Using Arrays
 2. Advanced usage
 
-## Basic usage
-### Chat Sequences
+### Creating Chat GPT Agents
+Salute agents are sequences that run from top to bottom. When Salute meets `gen` function, it sends the current prompt to the LLM, and puts the result in the output by the given key, this result will be also used as a part of the prompt for the next `gen` function.
 
-Salute has nice wrappers for chat completion. In the example below, you can see the power of `gen`. It allows you to easily code chat sequences without having a lot of boilerplate.
+With the power of `gen` you can build chat sequences without having a lot of boilerplate code. If your sequense work in ChatGPT, you can easily reimplement them with Salute.
 
-Also, you can see how `system`, `user`, and `assistant` are used to define the role of the message.
+`system`, `user`, and `assistant` are used to define the role of the message. 
+
+
 ```ts
 import { gpt3, gen, assistant, system, user } from "salute";
 
 const agent = gpt3(
   ({ params })=>[
     system`You are a helpful and terse assistant.`,
+    user`Hi!`,
+    assistant`Hello, how can I help you?`,
     user`
       I want a response to the following question: 
       ${params.query}
@@ -64,26 +75,89 @@ const agent = gpt3(
     user`
       Great, now please answer the question as if these experts had collaborated in writing a joint anonymous answer.`,
     assistant`${gen("answer")}`,
+    user`Are you sure you gave a good answer? Write the answer again and fix it if necessary.`,
+    assistant`${gen("fixedAnswer")}`,
   ]
 );
 
 const result = await agent(
   { query: `How can I be more productive?` },
-  { render: true } // will render the chat sequence in the console
+  { render: true } // render=true will render the chat sequence in the console
 );
 
 console.log(result);
 /*
 {
   expertNames: "Elon Musk, Bill Gates, and Jeff Bezos...",
-  answer: "You can be more productive by..."
+  answer: "You can be more productive by...",
+  fixedAnswer: "You can be more productive by..."
 }
 */
 ```
 
-### Arrays in Chat Sequences
+### Creating and nesting components
+Salute components are functions that return a chat sequence, promise, string, Generator, or an array or promise of any of these things. This makes it easy to split the code into smaller components.
 
-You can pass an array of prompts to `gen` and it will automatically generate an array of responses. This is useful for generating multiple responses to a single prompt.
+```ts
+import { gpt3, gen, assistant, system, user } from "salutejs";
+import { db } from "a-random-sql-library";
+
+// example of a component
+async function fetchTableSchemaAsAString(withSchema: boolean){
+  const listOfTables = await db.tables();
+  return listOfTables.map(table=>`Table ${table.name} has columns ${table.columns.join(", ")}`).join("\n");
+}
+
+const agent = gpt3(
+  ({ params })=>[
+    system`You are a helpful that answers questions by writing SQL queries.`,
+    user`
+      Here is my question: ${params.query}
+      Here is a list of tables in the database:
+      ----
+      ${fetchTableSchemaAsAString(false)/* we pass a promise, but we can also return a function that returns a promise */}
+      }
+      ----
+      Column names must be quoted with double quotes, e.g. "column_name". 
+      Dont use aggregate functions without GROUP BY.
+      Convert type if needed.
+      Generate a Clickhouse SQL query that answers the question above.
+      Return only SQL query, no other text. 
+    `,
+    assistant`${gen("sqlQuery")}`,
+    user`
+      Here is the result of your query:
+      -----
+      ${async ({outputs})=>{ 
+        // this returns a function that returns a promise. So you can use current outputs in the function.
+        return JSON.stringify(await db.run(outputs.sqlQuery))
+      }}
+      -----
+      Please convert the result to a text answer, so that it is easy to understand.
+    `,
+    assistant`${gen("answer")}`,
+  ]
+);
+
+const result = await agent(
+  { query: `How many users are there in the database?` },
+  { render: true } // render=true will render the chat sequence in the console
+);
+
+console.log(result);
+
+/*
+{
+  expertNames: "Elon Musk, Bill Gates, and Jeff Bezos...",
+  answer: "You can be more productive by...",
+  fixedAnswer: "You can be more productive by..."
+}
+*/
+```
+
+### Array.map for Chat Sequences
+
+Salute natively supports Arrays, so you can dynamically generate chat sequences. If `gen` is used inside an array, the output will be an array of generated values.
 
 ```ts
 import { gpt3, assistant, system, user, gen } from "salutejs";
