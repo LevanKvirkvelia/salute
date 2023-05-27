@@ -48,8 +48,9 @@ This page will give you an introduction to the 80% of Salute concepts and featur
 2. Advanced usage
 
 ### Simple Chat Completion
-Salute agents are sequences executing in order. `system`, `user`, and `assistant` define message roles.
-If the sequence encounters a `gen` function, it will send the present prompt to the LLM, the returned value will be stored in the output object under the key provided as the first argument.
+- Salute agents are sequences executing in order. 
+- `system`, `user`, and `assistant` define message roles.
+- If the sequence encounters a `gen` function, it will send the present prompt to the LLM, the returned value will be stored in the output object under the key provided as the first argument.
 
 
 ```ts
@@ -79,7 +80,7 @@ console.log(result);
 ```
 
 ### Creating Chat Sequences
-To improve the model's response, let's add another two steps to the chat sequence. The `gen` function saves the output as part of the prompt for the next `gen` function, making it easy to create chat sequences with minimal boilerplate. 
+To improve the model's performance, let's add another two steps to the chat sequence. The `gen` function saves the output as part of the prompt for the next `gen` function, making it easy to create chat sequences with minimal boilerplate. 
 
 ```ts
 import { gpt3, gen, assistant, system, user } from "salute";
@@ -137,7 +138,7 @@ async function runSQL({outputs}){
 
 const agent = gpt3(
   ({ params })=>[
-    system`You are a helpful that answers questions by writing SQL queries.`,
+    system`You are a helpful assistant that answers questions by writing SQL queries.`,
     user`
       Here is my question: ${params.query}
 
@@ -156,10 +157,12 @@ const agent = gpt3(
     user`
       Here is the result of your query:
       -----
-      ${runSQL}
-      /-- here we pass a function, it will be called when the sequence reaches this point --/
-      /-- The example above is equivalent to: --/
-      ${async ({outputs})=>{ 
+      ${runSQL
+      /*
+        here we pass a function, it will be called when the sequence reaches this point
+        The example above is equivalent to: 
+      */
+      async ({outputs})=>{ 
         return JSON.stringify(await db.run(outputs.sqlQuery))
       }}
       -----
