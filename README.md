@@ -5,7 +5,7 @@
 </picture>
 </div>
 
-# Salute - a simple declarative library to build AI Agents
+# Salute - a simple JS library to build AI Agents
   
 <!-- [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
 ![GitHub license](https://img.shields.io/github/license/LevanKvirkvelia/salute) -->
