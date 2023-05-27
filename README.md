@@ -263,7 +263,7 @@ const jsonAgent = davinci(
 
 ## Advanced Examples
 
-### Using `block` to control prompt context and `n` to generate multiple completions
+### `block` to control prompt context and `n` to generate multiple completions
 Here we use `block` to hide parts of the sequence until the condition is met, so you can control prompt context that will be sent with next `gen` and reduce the price of the API call.
 
 You can also pass options to `gen` to control the generated text. The `n` option defines how many completions to generate. If `n` is greater than 1, the output will be an array of strings, but only the first string will be used in the prompt for the next `gen`. Using `n` speeds up the generation process, because you can generate multiple completions with one API call.
