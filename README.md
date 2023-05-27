@@ -10,22 +10,20 @@
 <!-- [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
 ![GitHub license](https://img.shields.io/github/license/LevanKvirkvelia/salute) -->
 
-> A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby. 
-Everything will run on JavaScript at some point, it's now the turn of the AI agents.
+> Salute is a library, inspired by Microsoft Guidance and React, that allows for building powerful AI agents with low overhead and familiar JavaScript syntax.
 
 
 
-### Features
+
+### Key Features
+- React-like composability and "functional" agents.
 - Minimal overhead, limited number of abstractions, small code base.
-- Low-level control, matching the way LLM actually processes the text.
 - No hidden prompts, what you see is what you get.
-- React style composability and "functional" agents.
-- JavaScript features that you are already familiar with, providing a faster learning curve.
-- Type-checking, linting, syntax highlighting, and auto-completion.
+- Low-level control, matching the way LLM actually processes the text.
+- Faster learning curve due to familiar JavaScript features.
+- Supports type-checking, linting, syntax highlighting, and auto-completion.
 
 <br/>
-
-TLDR: build powerful agents with good syntax and no overhead.
 
 
 ### Installation
@@ -70,10 +68,12 @@ const agent = gpt3(
       I want a response to the following question: 
       ${params.query}
       Don't answer the question yet.
-      Name 3 world-class experts (past or present) who would be great at answering this?`,
+      Name 3 world-class experts (past or present) who would be great at answering this?
+    `,
     assistant`${gen("expertNames")}`,
     user`
-      Great, now please answer the question as if these experts had collaborated in writing a joint anonymous answer.`,
+      Great, now please answer the question as if these experts had collaborated in writing a joint anonymous answer.
+    `,
     assistant`${gen("answer")}`,
     user`Are you sure you gave a good answer? Write the answer again and fix it if necessary.`,
     assistant`${gen("fixedAnswer")}`,
@@ -96,7 +96,7 @@ console.log(result);
 ```
 
 ### Creating and nesting components
-Salute components are functions that return a chat sequence, string, AsyncGenerator, or an array or promise of any of these things. This makes it easy to split the code into smaller components.
+Salute components are functions returning chat sequences, strings, AsyncGenerators, or an array or promise of these. This makes it easy to split the code into smaller components.
 
 ```ts
 import { gpt3, gen, assistant, system, user } from "salutejs";
@@ -199,7 +199,7 @@ console.log(result);
 }
 */
 ```
-
+![CleanShot 2023-05-22 at 19 26 20](https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/0556ef29-0249-4e80-8936-69584997a3d8)
 
 ### Davinci model
 Below is a simple example of how to use `salutejs` to generate specific parts of text. By allowing you to control when you need to generate inside the prompt - you can have a more controlled output.
@@ -233,14 +233,12 @@ const result = await proverbAgent({
 
 
 
-![CleanShot 2023-05-22 at 19 26 20](https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/0556ef29-0249-4e80-8936-69584997a3d8)
+
 
 ## JSON Example
 
 
 Here is an example of getting the LLM to generate inference while perfectly maintaining the schema you want without any extra prompt engineering on schema or many examples.
-
-> Note: Planning to add zod support to make this even nicer
 
 ```ts
 const jsonAgent = davinci(
