@@ -313,7 +313,7 @@ console.log(result);
 ![blocks advanced](https://github.com/LevanKvirkvelia/salute/assets/5202843/95ec6ca9-9272-43c5-8c78-499361060898)
 
 ### Two agents talking to each other
-In Salute, `wait` pauses the sequence until input is queued. It accepts two parameters: queue name and a directive to save input to outputs. If the second parameter is `true`, it saves input to outputs under the queue name. If it's a string, input is saved under that name.
+In Salute, `wait` pauses the sequence until there is something in the input queue. It accepts two parameters: queue name and a directive to save input to outputs. If the second parameter is `true`, it saves input to outputs under the queue name. If it's a string, input is saved under that name.
 
 To enqueue input, use `agent.input()`, with the queue name as the first argument and the queued value as the second.
 
