@@ -13,7 +13,7 @@
 > A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby.
 
 ### Why?
-The idea for Salute came up when I was using GPT4 to develop and refine AI agents, which also incorporated GPT4. The decent results for single-prompt agents led me to the next step of utilizing AI to code using OpenAI's or LangChain's libraries, aiming to create more complex, multi-prompt agents. The problem is that these libraries are not designed to be used by AI, ironically they are not easy to use for humans either.
+The idea for Salute came up when I was using GPT4 to help me build and optimise LLM agents. The decent results for single-prompt agents led me to the next step of utilizing AI to code using OpenAI's or LangChain's libraries, aiming to create more complex, multi-prompt agents. The problem is that these libraries are not designed to be used by AI, ironically they are not easy to use for humans either.
 
 That's why I decided to build a library that would be easy to use by both humans and AIs. 
 
