@@ -1,4 +1,4 @@
-import { davinci, llm, renderStream } from "..";
+import { davinci, llm } from "..";
 
 async function main() {
   const QUESTIONS = [

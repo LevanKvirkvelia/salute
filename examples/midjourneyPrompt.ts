@@ -16,13 +16,15 @@ async function main() {
         Act as a prompt generator for a generative AI called "${AI_NAME}". 
         ${AI_NAME} AI generates images based on given prompts.
       `,
-        user`
+      user`
         My query is: ${params.query}
         Generate descriptions about my query, in realistic photographic style, for an Instagram post. 
         The answer should be one sentence long, starting directly with the description.
       `,
-
-      QUESTIONS.map((item) => [user`${item}`, assistant`${gen("answer")}`]),
+      QUESTIONS.map((item) => [
+        user`${item}`, 
+        assistant`${gen("answer")}`
+      ]),
     ],
     { stream: true }
   );

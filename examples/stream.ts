@@ -1,7 +1,10 @@
 import { ai, davinci, gen } from "..";
 
 async function main() {
-  const proverbAgent = davinci(
+  const proverbAgent = davinci<
+    { proverb: string; book: string; chapter: number; verse: number },
+    { verse: string; rewrite: string; chapter: string }
+  >(
     ({ params }) => ai`
       Tweak this proverb to apply to model instructions instead.
       ${params.proverb}
