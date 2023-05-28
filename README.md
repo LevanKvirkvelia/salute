@@ -43,9 +43,14 @@ Then set `process.env.OPENAI_KEY` to your OpenAI API key.
 ## Quick Start
 This page will give you an introduction to the 80% of Salute concepts and features that you will use on a daily basis.
 1. Quick Start
-    1. Chat Sequences
-    2. Using Arrays
-2. Advanced usage
+    1. [Simple Chat Completion](#simple-chat-completion)
+    2. [Creating Chat Sequences](#creating-chat-sequences)
+    3. [Creating and nesting components](#creating-and-nesting-components)
+    4. [Array.map for Chat Sequences](#arraymap-for-chat-sequences)
+    5. [Davinci model JSON Example](#davinci-model-json-example)
+2. Advanced Examples
+    1. [block to control prompt context and n to generate multiple completions](#block-to-control-prompt-context-and-n-to-generate-multiple-completions)
+    2. [Using TypeScript](#using-typescript)
 
 ### Simple Chat Completion
 - Salute agents are sequences executing in order. 
