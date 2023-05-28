@@ -221,15 +221,8 @@ const result = await agent(
 );
 
 console.log(result);
-
-/*
-{
-  answer: [ "Answer 1", "Answer 2", "Answer 3", "Answer 4" ]
-}
-*/
 ```
-![CleanShot 2023-05-22 at 19 26 20](https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/0556ef29-0249-4e80-8936-69584997a3d8)
-
+![mj15](https://github.com/LevanKvirkvelia/salute/assets/5202843/6b097f9b-7739-46d1-87c0-c0e32fe96b99)
 
 ### Davinci model JSON Example
 Here is an example of getting the LLM to generate inference while perfectly maintaining the schema you want without any extra prompt engineering on schema or many examples. `salutejs` will generate text only in the places where the `gen` function is called.
@@ -251,9 +244,7 @@ const jsonAgent = davinci(
     }`
   );
 ```
-
-![CleanShot 2023-05-22 at 19 47 34](https://github.com/CryogenicPlanet/cryogenicplanet.github.io/assets/10355479/e98caacf-754a-407e-ac5b-d0f7ff0c25fa)
-
+![json](https://github.com/LevanKvirkvelia/salute/assets/5202843/5af5a75e-eec3-4ec6-b341-8eeea275f595)
 
 ## Advanced Examples
 
@@ -306,6 +297,7 @@ const result = await agent({ goal: "read more books" }, { render: true });
 
 console.log(result);
 ```
+![blocks advanced](https://github.com/LevanKvirkvelia/salute/assets/5202843/95ec6ca9-9272-43c5-8c78-499361060898)
 
 ### Using TypeScript
 You can use TypeScript to define the type of the `params` and `outputs` objects. This will give you autocomplete and type checking in your IDE. Please note, that you would need to use `ai`, `gen` and other functions from the function argument, not from the imported module.
@@ -347,8 +339,6 @@ The library is primarily designed to work with `openai` models but it is fully b
 ### OpenAI Custom Config
 
 ```ts
-import {createChatGPT, createOpenAICompletion} from 'salutejs'
-
 // Use createChatGPT to create chat completions
 const gpt4 = createOpenAIChatCompletion({
     model: "gpt-4",
@@ -368,93 +358,3 @@ const davinci = createOpenAICompletion({
     // Full openai config object
 })
 ```
-
-### Full Config
-
-You can fully configure how the model works with complete control, will be working to make this even better in the coming weeks
-
-
-<details>
-<summary>1. Custom Chat Model</summary>
-
-
-
-```ts
-class PromptStorage extends Array<Message> {
-    private roles;
-    constructor(roles?: boolean);
-    pushElement(promptElement: PromptElement): PromptElement;
-    getElement(promptElement: PromptElement): PromptElement;
-    getLLMElement(generated: string): PromptElement;
-    toString(): string;
-    toChatCompletion(): ChatCompletionRequestMessage[];
-}
-
-// Bring your own chat model
-type CreateCompletionFunc = (props: {
-  prompt: PromptStorage;
-  stop?: string;
-}) => Promise<NodeJS.ReadableStream>;
-
-const model = createChatCompletion(async (props) => {
-
-
-//   const response = await openAIApi.createChatCompletion(
-//     {
-//       model: "gpt-3.5-turbo",
-//       messages: props.prompt.toChatCompletion(),
-//       stream: true,
-//       temperature: 1,
-//     },
-//     { responseType: "stream" }
-//   );
-
-  const stream = response.data as unknown as NodeJS.ReadableStream;
-
-// Expect that you return a stream
-  return stream;
-});
-
-```
-</details>
-
-<details>
-<summary>2. Custom Completion Model</summary>
-
-
-```ts
-class PromptStorage extends Array<Message> {
-    private roles;
-    constructor(roles?: boolean);
-    pushElement(promptElement: PromptElement): PromptElement;
-    getElement(promptElement: PromptElement): PromptElement;
-    getLLMElement(generated: string): PromptElement;
-    toString(): string;
-    toChatCompletion(): ChatCompletionRequestMessage[];
-}
-
-type CreateCompletionFunc = (props: {
-  prompt: PromptStorage;
-  stop?: string;
-}) => Promise<NodeJS.ReadableStream>;
-
-// Bring your own completion model
-export const davinci = createCompletion(async (props) => {
-
-//   const response = await openAIApi.createCompletion(
-//     {
-//       model: "text-davinci-003",
-//       prompt: props.prompt.toString(),
-//       temperature: 0,
-//       stream: true,
-//       stop: props.stop,
-//     },
-//     { responseType: "stream" }
-//   );
-
-  const stream = response.data as unknown as NodeJS.ReadableStream;
-
-  return stream;
-});
-```
-</details>
