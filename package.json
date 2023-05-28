@@ -1,10 +1,10 @@
 {
   "name": "salutejs",
-  "version": "0.0.2-beta",
+  "version": "0.0.2-beta2",
   "description": "Node.js library for the OpenAI API",
   "repository": {
     "type": "git",
-    "url": "git@github.com:LevanKvirkvelia/salute"
+    "url": "git+https://github.com/LevanKvirkvelia/salute.git"
   },
   "keywords": [
     "openai",
