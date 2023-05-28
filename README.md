@@ -69,14 +69,12 @@ const agent = gpt3(
   ]
 );
 
-const result = await agent({ query: `How can I be more productive?` });
+const result = await agent(
+  { query: `How can I be more productive?` },
+  { render: true } // render=true will render the chat sequence in the console
+);
 
 console.log(result);
-/*
-{
-  answer: "You can be more productive by...",
-}
-*/
 ```
 ![Simple Sequence](https://github.com/LevanKvirkvelia/salute/assets/5202843/4a9e0479-d876-4185-9470-264d33ec0840)
 
@@ -107,18 +105,13 @@ const agent = gpt3(
 
 const result = await agent(
   { query: `How can I be more productive?` },
-  { render: true } // render=true will render the chat sequence in the console
+  { render: true }
 );
 
 console.log(result);
-/*
-{
-  expertNames: "Elon Musk, Bill Gates, and Jeff Bezos...",
-  answer: "You can be more productive by...",
-  fixedAnswer: "You can be more productive by..."
-}
-*/
 ```
+![New Recording May 27 2023 0500 PM](https://github.com/LevanKvirkvelia/salute/assets/5202843/ad98499d-3464-40e7-9f5f-b4f4dbd9e9cc)
+
 
 ### Creating and nesting components
 Salute components are similar to React components. They are functions returning Salute primitives, such as actions (e.g. `gen`, `system`, `user`, `assistant`), AsyncGenerators, strings, or arrays and promises of these. The function will be called when sequence reaches it, so you can use the current outputs in the function. 
