@@ -1,4 +1,4 @@
-import { assistant, gen, gpt3, loop, system, user, wait } from "..";
+import { assistant, gen, gpt3, loop, system, user, wait } from "../src";
 
 async function main() {
   const agent = gpt3(({ params }) => [
@@ -17,15 +17,13 @@ async function main() {
   const democrat = agent({ role: "democrat" });
   const republican = agent({ role: "republican" }, { render: true });
 
-  const firstQuestion = "What is your opinion on the topic of abortion?";
-  republican.input("question", firstQuestion);
+  let question = "What is your opinion on the topic of abortion?";
 
   for (let i = 0; i < 3; i++) {
+    republican.input("question", question);
     democrat.input("question", await republican.next()!);
-    republican.input("question", await democrat.next()!);
+    question = (await democrat.next())!;
   }
-
-  await republican.next();
 
   console.log(republican.outputs);
 }

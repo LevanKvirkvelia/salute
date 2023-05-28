@@ -13,7 +13,7 @@
 > A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby.
 
 ### Why?
-I came up with the idea for Salute when I was trying to train LLMs to build and improve AI agents. While the result was good for single prompt agents, it was clear that agents are rarely just a single prompt, but rather a sequence of prompts. This compelled me to prompt AI to write code using OpenAI's or LangChain's libraries to create complex agents. The problem is that these libraries are not designed for AI use, ironically they are not easy to use for humans either.
+I came up with the idea for Salute when I was trying to use GPT4 to build and improve AI agents. While the result was good for single prompt agents, it was clear that agents are rarely just a single prompt, but rather a sequence of prompts. This compelled me to prompt AI to write code using OpenAI's or LangChain's libraries to create complex agents. The problem is that these libraries are not designed for AI use, ironically they are not easy to use for humans either.
 
 That's why I decided to build a library that would be easy to use by both humans and AIs. 
 
@@ -53,7 +53,8 @@ This page will give you an introduction to the 80% of Salute concepts and featur
     5. [Davinci model JSON Example](#davinci-model-json-example)
 - Advanced Examples
     1. [block to control prompt context and n to generate multiple completions](#block-to-control-prompt-context-and-n-to-generate-multiple-completions)
-    2. [Using TypeScript](#using-typescript)
+    2. [Two agents talking to each other](#two-agents-talking-to-each-other)
+    3. [Using TypeScript](#using-typescript)
 
 ### Simple Chat Completion
 - Salute agents are sequences executing in order. 
@@ -310,6 +311,54 @@ const result = await agent({ goal: "read more books" }, { render: true });
 console.log(result);
 ```
 ![blocks advanced](https://github.com/LevanKvirkvelia/salute/assets/5202843/95ec6ca9-9272-43c5-8c78-499361060898)
+
+### Two agents talking to each other
+In Salute, `wait` pauses the sequence until input is queued. It accepts two parameters: queue name and a directive to save input to outputs. If the second parameter is `true`, it saves input to outputs under the queue name. If it's a string, input is saved under that name.
+
+To enqueue input, use `agent.input()`, with the queue name as the first argument and the queued value as the second.
+
+The `loop` function repeats sequences indefinitely. If you provide a string as the first argument, the outputs will be stored as an array of objects, rather than separate arrays for each generation.
+
+```ts
+const agent = gpt3(({ params }) => [
+  system`You are a helpful assistant`,
+  user`
+  You will answer the user as ${params.role} in the following conversation. 
+  At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. 
+  Never talk about the fact that you are an AI, even if the user asks you. Always answer as ${params.role}.`,
+  assistant`Ok, I will follow these instructions.`,
+  loop("inputs", [
+    user`${wait("question", true)}`, //
+    assistant`${gen("answer")}`,
+  ]),
+]);
+
+const democrat = agent({ role: "democrat" });
+const republican = agent({ role: "republican" }, { render: true });
+
+let question = "What is your opinion on the topic of abortion?";
+
+for (let i = 0; i < 2; i++) {
+  republican.input("question", question);
+  democrat.input("question", await republican.next()!);
+  question = await democrat.next();
+}
+
+console.log(republican.outputs);
+/*
+{
+  inputs: [
+    {
+      question: 'What is your opinion on the topic of abortion?',
+      answer: 'As a Republican, I believe in protecting the sanctity of life and am therefore against abortion. However, there may be certain circumstances where it could be considered, such as cases of rape, incest, or to protect the life of the mother, but those should be very limited in nature. Overall, I think we need to work to reduce the number of abortions and promote alternatives such as adoption.'
+    },
+    {
+      question: "As a Democrat, I believe that people should have access to safe and legal abortion services. While we recognize the complexity of the issue, we support a woman's right to make her own personal medical decisions. Democrats also believes in education and access to birth control methods is vital to preventing unintended pregnancies and reducing the need for abortion. At the same time, we also support policies that provide pregnant women the resources, care, and support needed to bring their babies to term and in healthy conditions.",
+      answer: "I understand your perspective, but as a Republican, I firmly believe in protecting the sanctity of life, from conception to natural death. While providing access to safe and legal abortion services is important, it should not come at the expense of unborn babies' lives. Instead, we should focus on promoting adoption and improving access to resources and education to prevent unplanned pregnancies in the first place. Ultimately, we must work together to find common ground and reduce the need for abortion while protecting innocent life."
+    }
+  ]
+}*/
+```
 
 ### Using TypeScript
 You can use TypeScript to define the type of the `params` and `outputs` objects. This will give you autocomplete and type checking in your IDE. Please note, that you would need to use `ai`, `gen` and other functions from the function argument, not from the imported module.
