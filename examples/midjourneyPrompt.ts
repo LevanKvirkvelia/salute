@@ -12,11 +12,7 @@ async function main() {
 
   const agent = gpt3<
     { query: string },
-    {
-      lol: { a: string }[];
-      answer: string[];
-      random: string;
-    }
+    { answer: string[] }
   >(({ params, gen }) => [
     system`
       Act as a prompt generator for a generative AI called "${AI_NAME}". 

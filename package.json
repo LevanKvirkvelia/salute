@@ -1,6 +1,6 @@
 {
   "name": "salutejs",
-  "version": "0.0.1-beta3",
+  "version": "0.0.1-beta4",
   "description": "Node.js library for the OpenAI API",
   "repository": {
     "type": "git",
@@ -17,22 +17,24 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "module": "./dist/index.mjs",
   "scripts": {
-    "build": "tsc --outDir dist/"
+    "clean": "rm -rf dist/* deno/dist/*",
+    "build": "yarn run clean && yarn run build:cjs && yarn run build:esm",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "rollup --config rollup.config.js --bundleConfigAsCjs"
   },
   "dependencies": {
-    "axios": "^0.26.0",
     "chalk": "^4.1.2",
-    "dedent": "^0.7.0",
-    "endent": "^2.1.0",
     "eventemitter3": "^5.0.1",
-    "form-data": "^4.0.0",
     "openai": "^3.2.1",
-    "openai-streams": "^5.5.0",
     "ts-deepmerge": "^6.0.3"
   },
   "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.1",
     "@types/node": "^12.11.5",
+    "rollup": "^3.23.0",
+    "tslib": "^2.5.2",
     "tsup": "^6.7.0",
     "tsx": "^3.12.7",
     "typescript": "^5.0.4"
