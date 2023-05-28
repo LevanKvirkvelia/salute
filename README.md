@@ -5,19 +5,22 @@
 </picture>
 </div>
 
-# Salute - a simple library to build AI apps in React way
+# Salute - a library to build AI agents, designed to be easy to use for both humans and AIs
   
 <!-- [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
 ![GitHub license](https://img.shields.io/github/license/LevanKvirkvelia/salute) -->
 
 > A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby.
 
+### Why?
+I came up with the idea for Salute when I was trying to train LLMs to build and improve AI agents. While the result was good for single prompt agents, it was clear that agents are rarely just a single prompt, but rather a sequence of prompts. This compelled me to prompt AI to write code using OpenAI's or LangChain's libraries to create complex agents. The problem is that these libraries are not designed for AI use, ironically they are not easy to use for humans either.
 
+That's why I decided to build a library that would be easy to use by both humans and AIs. 
 
 
 ### Key Features
 - React-like composability and "functional" agents.
-- Minimal overhead, limited number of abstractions, small code base.
+- Limited number of abstractions, minimal overhead, small code base.
 - No hidden prompts, what you see is what you get.
 - Low-level control, matching the way LLM actually processes the text.
 - Faster learning curve due to familiar JavaScript features.
@@ -114,6 +117,11 @@ const result = await agent(
 );
 
 console.log(result);
+/*
+{
+  answer: "You can be more productive by...",
+}
+*/
 ```
 ![New Recording May 27 2023 0500 PM](https://github.com/LevanKvirkvelia/salute/assets/5202843/ad98499d-3464-40e7-9f5f-b4f4dbd9e9cc)
 
@@ -156,12 +164,7 @@ const agent = gpt3(
     user`
       Here is the result of your query:
       -----
-      ${runSQL
-      /*
-        here we pass a function, it will be called when the sequence reaches this point
-        The example above is equivalent to: 
-      */
-      async ({outputs})=>{ 
+      ${async ({outputs})=>{ 
         return JSON.stringify(await db.run(outputs.sqlQuery))
       }}
       -----
@@ -177,7 +180,6 @@ const result = await agent(
 );
 
 console.log(result);
-
 /*
 {
   expertNames: "Elon Musk, Bill Gates, and Jeff Bezos...",
@@ -226,6 +228,11 @@ const result = await agent(
 );
 
 console.log(result);
+/*
+{
+  answer: ["Answer 1", "Answer 2", "Answer 3", "Answer 4"]
+}
+*/
 ```
 ![mj15](https://github.com/LevanKvirkvelia/salute/assets/5202843/6b097f9b-7739-46d1-87c0-c0e32fe96b99)
 
