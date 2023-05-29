@@ -2,3 +2,4 @@
 /dist
 /.github
 .DS_Store
+.yarn-error.log
