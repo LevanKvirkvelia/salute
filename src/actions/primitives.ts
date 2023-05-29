@@ -11,8 +11,8 @@ export type Outputs = {
 export type Context = {
   role: Roles;
   currentLoopId?: string;
-  outputToArray?: boolean;
   outputAddress: string[];
+  leafId: (string | number)[];
   llm: { completion: LLMCompletionFn; isChat: boolean };
   stream?: boolean;
 };
@@ -70,26 +70,20 @@ export type TemplateActionInput<Parameters, O extends Outputs> =
 
 export async function* runActions<Parameters, O extends Outputs>(
   action: TemplateActionInput<Parameters, O>,
-  props: ActionProps<Parameters, O>,
-  disableArray: boolean = false
+  props: ActionProps<Parameters, O>
 ): AsyncGenerator<PromptElement, void, unknown> {
   const { context } = props;
 
   const element = typeof action === "function" ? action(props) : action;
-  if (element === null) {
-    return;
-  }
+
+  if (element === null) return;
+
   if (Array.isArray(element)) {
-    const isInArray = !disableArray;
-    for (const _element of element) {
-      if (isInArray) {
-        yield* runActions(_element, {
-          ...props,
-          context: { ...context, outputToArray: true },
-        });
-      } else {
-        yield* runActions(_element, props);
-      }
+    for (const [index, _element] of element.entries()) {
+      yield* runActions(_element, {
+        ...props,
+        context: { ...context, leafId: [...context.leafId, index] },
+      });
     }
   } else if (typeof element === "number" || typeof element === "string") {
     yield {

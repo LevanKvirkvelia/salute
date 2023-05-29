@@ -22,7 +22,8 @@
     "clean": "rm -rf dist/* deno/dist/*",
     "build": "yarn run clean && yarn run build:cjs && yarn run build:esm",
     "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:esm": "rollup --config rollup.config.js --bundleConfigAsCjs"
+    "build:esm": "rollup --config rollup.config.js --bundleConfigAsCjs",
+    "test": "vitest"
   },
   "dependencies": {
     "chalk": "^4.1.2",
@@ -37,7 +38,8 @@
     "tslib": "^2.5.2",
     "tsup": "^6.7.0",
     "tsx": "^3.12.7",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "vitest": "^0.31.1"
   },
   "directories": {
     "example": "examples"

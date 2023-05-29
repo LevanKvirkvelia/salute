@@ -23,7 +23,12 @@ export function wait<T extends string>(
     }
     const value = state.queue[name].shift();
     const saveName = save && typeof save === "string" ? save : name;
-    if (!context.outputToArray) outputs[saveName] = value;
+
+    const isOutputToArray = context.leafId
+      .slice(-2)
+      .every((x) => typeof x === "number");
+
+    if (!isOutputToArray) outputs[saveName] = value;
     else {
       if (!Array.isArray(outputs[saveName])) outputs[saveName] = [];
       (outputs[saveName] as string[]).push(value);
@@ -80,8 +85,16 @@ export const gen = (name: string, options?: GenOptions): Action<any, any> => {
     }
 
     const isMulti = options?.n && options.n > 1;
-
-    if (!context.outputToArray)
+    const isOutputToArray = context.leafId
+      .slice(-2)
+      .every((x) => typeof x === "number");
+    console.log({
+      isMulti,
+      n: options?.n,
+      outputToArray: isOutputToArray,
+      address: context.leafId,
+    });
+    if (!isOutputToArray)
       outputs[name] = isMulti ? fullStrings : fullStrings[0];
     else {
       if (!Array.isArray(outputs[name])) outputs[name] = [];
@@ -105,7 +118,7 @@ export function map<Parameters = any>(
 
     props.outputs[varName] = [];
 
-    for (const element of elements) {
+    for (const [index, element] of elements.entries()) {
       const output: Outputs = {};
       (props.outputs[varName] as Outputs[]).push(output);
       const generator = runActions(element, {
@@ -114,8 +127,8 @@ export function map<Parameters = any>(
         context: {
           ...props.context,
           outputAddress: [...props.context.outputAddress, varName],
+          leafId: [...props.context.leafId, `map(${index})`],
           currentLoopId: loopId,
-          outputToArray: false,
         },
       });
       yield* generator;
@@ -130,7 +143,7 @@ export function loop<Parameters = any>(
   return createAction(async function* (props) {
     const loopId = Math.random().toString(36).slice(2, 9);
     props.outputs[varName] = [];
-
+    let i = 0;
     while (props.state.loops[loopId] !== false) {
       const output: Outputs = {};
       (props.outputs[varName] as Outputs[]).push(output);
@@ -140,11 +153,12 @@ export function loop<Parameters = any>(
         context: {
           ...props.context,
           outputAddress: [...props.context.outputAddress, varName],
+          leafId: [...props.context.leafId, "loop", i],
           currentLoopId: loopId,
-          outputToArray: false,
         },
       });
       yield* generator;
+      i++;
     }
   });
 }
@@ -156,11 +170,13 @@ export function block<Parameters = any>(
   }
 ): Action<Parameters, any> {
   return createAction(async function* (props) {
-    const generator = runActions(
-      elements,
-      props,
-      props.context.role === "none" && props.context.llm.isChat
-    );
+    const generator = runActions(elements, {
+      ...props,
+      context: {
+        ...props.context,
+        leafId: [...props.context.leafId, "block"],
+      },
+    });
 
     for await (const element of generator) {
       const oldHidden = element.hidden;
