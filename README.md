@@ -18,7 +18,7 @@ That's why I decided to build a library that would be easy to use by both humans
 
 
 ### Key Features
-- React-like composability and "functional" agents.
+- React-like composability and declarative approach.
 - Limited number of abstractions, minimal overhead, small code base.
 - No hidden prompts, what you see is what you get.
 - Low-level control, matching the way LLM actually processes the text.
@@ -235,6 +235,55 @@ console.log(result);
 */
 ```
 ![mj15](https://github.com/LevanKvirkvelia/salute/assets/5202843/6b097f9b-7739-46d1-87c0-c0e32fe96b99)
+
+Alternatively, you can use `map` function to get an array of objects.
+
+```ts
+import { gpt3, assistant, system, user, gen, map } from "salutejs";
+
+const AI_NAME = "Midjourney";
+
+const QUESTIONS = [
+  `Main elements with specific imagery details`,
+  `Next, describe the environment`,
+  `Now, provide the mood / feelings and atmosphere of the scene`,
+  `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
+];
+
+const agent = gpt3(({ params }) => [
+  system`
+    Act as a prompt generator for a generative AI called "${AI_NAME}". 
+    ${AI_NAME} AI generates images based on given prompts.
+  `,
+  user`
+    My query is: ${params.query}
+    Generate descriptions about my query, in realistic photographic style, for an Instagram post. 
+    The answer should be one sentence long, starting directly with the description.
+  `,
+
+  map('items', QUESTIONS.map((item) => [
+    user`${item}`, 
+    assistant`${gen("answer")}`
+  ])),
+]);
+
+const result = await agent(
+  { query: `A picture of a dog` },
+  { render: true }
+);
+
+console.log(result);
+/*
+{
+  items: [
+    { answer: "Answer 1" },
+    { answer: "Answer 2" },
+    { answer: "Answer 3" },
+    { answer: "Answer 4" }
+  ]
+}
+*/
+```
 
 ### Davinci model JSON Example
 Here is an example of getting the LLM to generate inference while perfectly maintaining the schema you want without any extra prompt engineering on schema or many examples. `salutejs` will generate text only in the places where the `gen` function is called.

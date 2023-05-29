@@ -129,7 +129,6 @@ export function loop<Parameters = any>(
 ): Action<Parameters, any> {
   return createAction(async function* (props) {
     const loopId = Math.random().toString(36).slice(2, 9);
-
     props.outputs[varName] = [];
 
     while (props.state.loops[loopId] !== false) {
