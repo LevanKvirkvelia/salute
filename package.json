@@ -1,6 +1,6 @@
 {
   "name": "salutejs",
-  "version": "0.0.4-experimental",
+  "version": "0.0.5",
   "description": "Node.js library for the OpenAI API",
   "repository": {
     "type": "git",
@@ -31,8 +31,9 @@
   },
   "scripts": {
     "clean": "rm -rf dist/* deno/dist/*",
-    "build": "tsup src/index.ts  --sourcemap --dts --format esm,cjs",
-    "prepare": "yarn run build"
+    "build": "yarn run clean && tsup src/index.ts  --sourcemap --dts --format esm,cjs",
+    "prepublishOnly": "yarn run build",
+    "test": "vitest"
   },
   "dependencies": {
     "chalk": "^4.1.2",
@@ -43,7 +44,8 @@
   "devDependencies": {
     "@types/node": "^12.11.5",
     "tsup": "^6.7.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "vitest": "^0.31.1"
   },
   "directories": {
     "example": "examples"

@@ -81,7 +81,6 @@ export type Keys<T extends Outputs, K = keyof T> = K extends string
     : never
   : never;
 
-
 export type ActionFuncs<Parameters, O extends Outputs> = {
   gen: GenFunc<O>;
   map: MapFunc<SubTypeKeysOnly<O>>;
@@ -146,7 +145,7 @@ export function llm<
       outputs,
       params: parameters,
       currentPrompt: prompt,
-      context: { role: "none", outputAddress: [], ...context },
+      context: { role: "none", leafId: [], outputAddress: [], ...context },
       nextString: undefined,
       state,
     };
@@ -166,7 +165,10 @@ export function llm<
           listeners.onLLMResponse?.(value, name);
         });
       for (let i = 0; i < __messages.length; i++) {
-        const generator = runActions(__messages[i], actionPromps);
+        const generator = runActions(__messages[i], {
+          ...actionPromps,
+          context: { ...actionPromps.context, leafId: [i] },
+        });
 
         for await (const value of listeners.render
           ? renderStream(generator, context.llm.isChat)

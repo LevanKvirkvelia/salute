@@ -5,19 +5,21 @@
 </picture>
 </div>
 
-# Salute - a simple library to build AI apps in React way
+# Salute - a declarative JS library to build AI agents in React way. Designed to be easy to use for both humans and AIs
   
 <!-- [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
 ![GitHub license](https://img.shields.io/github/license/LevanKvirkvelia/salute) -->
 
 > A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby.
 
-
+### Why?
+The idea for Salute came up after my experements with prompting GPT4 to code AI agents using OpenAI's or LangChain's libraries. The problem is that these libraries are not designed to be used by AI, ironically they are not easy to use for humans either.
+That's why I decided to build a library that would be easy to use by both humans and AIs. 
 
 
 ### Key Features
-- React-like composability and "functional" agents.
-- Minimal overhead, limited number of abstractions, small code base.
+- React-like composability and declarative approach.
+- Limited number of abstractions, minimal overhead, small code base.
 - No hidden prompts, what you see is what you get.
 - Low-level control, matching the way LLM actually processes the text.
 - Faster learning curve due to familiar JavaScript features.
@@ -49,8 +51,9 @@ This page will give you an introduction to the 80% of Salute concepts and featur
     4. [Array.map for Chat Sequences](#arraymap-for-chat-sequences)
     5. [Davinci model JSON Example](#davinci-model-json-example)
 - Advanced Examples
-    1. [block to control prompt context and n to generate multiple completions](#block-to-control-prompt-context-and-n-to-generate-multiple-completions)
-    2. [Using TypeScript](#using-typescript)
+    1. [Control prompt context and generate multiple completions](#control-prompt-context-and-generate-multiple-completions)
+    2. [Two agents talking to each other](#two-agents-talking-to-each-other)
+    3. [Using TypeScript](#using-typescript)
 
 ### Simple Chat Completion
 - Salute agents are sequences executing in order. 
@@ -114,6 +117,11 @@ const result = await agent(
 );
 
 console.log(result);
+/*
+{
+  answer: "You can be more productive by...",
+}
+*/
 ```
 ![New Recording May 27 2023 0500 PM](https://github.com/LevanKvirkvelia/salute/assets/5202843/ad98499d-3464-40e7-9f5f-b4f4dbd9e9cc)
 
@@ -156,12 +164,7 @@ const agent = gpt3(
     user`
       Here is the result of your query:
       -----
-      ${runSQL
-      /*
-        here we pass a function, it will be called when the sequence reaches this point
-        The example above is equivalent to: 
-      */
-      async ({outputs})=>{ 
+      ${async ({outputs})=>{ 
         return JSON.stringify(await db.run(outputs.sqlQuery))
       }}
       -----
@@ -177,7 +180,6 @@ const result = await agent(
 );
 
 console.log(result);
-
 /*
 {
   expertNames: "Elon Musk, Bill Gates, and Jeff Bezos...",
@@ -226,8 +228,62 @@ const result = await agent(
 );
 
 console.log(result);
+/*
+{
+  answer: ["Answer 1", "Answer 2", "Answer 3", "Answer 4"]
+}
+*/
 ```
 ![mj15](https://github.com/LevanKvirkvelia/salute/assets/5202843/6b097f9b-7739-46d1-87c0-c0e32fe96b99)
+
+Alternatively, you can use `map` function to get an array of objects.
+
+```ts
+import { gpt3, assistant, system, user, gen, map } from "salutejs";
+
+const AI_NAME = "Midjourney";
+
+const QUESTIONS = [
+  `Main elements with specific imagery details`,
+  `Next, describe the environment`,
+  `Now, provide the mood / feelings and atmosphere of the scene`,
+  `Finally, describe the photography style (Photo, Portrait, Landscape, Fisheye, Macro) along with camera model and settings`,
+];
+
+const agent = gpt3(({ params }) => [
+  system`
+    Act as a prompt generator for a generative AI called "${AI_NAME}". 
+    ${AI_NAME} AI generates images based on given prompts.
+  `,
+  user`
+    My query is: ${params.query}
+    Generate descriptions about my query, in realistic photographic style, for an Instagram post. 
+    The answer should be one sentence long, starting directly with the description.
+  `,
+
+  map('items', QUESTIONS.map((item) => [
+    user`${item}`, 
+    assistant`${gen("answer")}`
+  ])),
+]);
+
+const result = await agent(
+  { query: `A picture of a dog` },
+  { render: true }
+);
+
+console.log(result);
+/*
+{
+  items: [
+    { answer: "Answer 1" },
+    { answer: "Answer 2" },
+    { answer: "Answer 3" },
+    { answer: "Answer 4" }
+  ]
+}
+*/
+```
 
 ### Davinci model JSON Example
 Here is an example of getting the LLM to generate inference while perfectly maintaining the schema you want without any extra prompt engineering on schema or many examples. `salutejs` will generate text only in the places where the `gen` function is called.
@@ -253,7 +309,7 @@ const jsonAgent = davinci(
 
 ## Advanced Examples
 
-### `block` to control prompt context and `n` to generate multiple completions
+### Control prompt context and generate multiple completions
 Here we use `block` to hide parts of the sequence until the condition is met, so you can control prompt context that will be sent with next `gen` and reduce the price of the API call.
 
 You can also pass options to `gen` to control the generated text. The `n` option defines how many completions to generate. If `n` is greater than 1, the output will be an array of strings, but only the first string will be used in the prompt for the next `gen`. Using `n` speeds up the generation process, because you can generate multiple completions with one API call.
@@ -303,6 +359,54 @@ const result = await agent({ goal: "read more books" }, { render: true });
 console.log(result);
 ```
 ![blocks advanced](https://github.com/LevanKvirkvelia/salute/assets/5202843/95ec6ca9-9272-43c5-8c78-499361060898)
+
+### Two agents talking to each other
+In Salute, `wait` pauses the sequence until there is something in the input queue. It accepts two parameters: queue name and a directive to save input to outputs. If the second parameter is `true`, it saves input to outputs under the queue name. If it's a string, input is saved under that name.
+
+To enqueue input, use `agent.input()`, with the queue name as the first argument and the queued value as the second.
+
+The `loop` function repeats sequences indefinitely. If you provide a string as the first argument, the outputs will be stored as an array of objects, rather than separate arrays for each generation.
+
+```ts
+const agent = gpt3(({ params }) => [
+  system`You are a helpful assistant`,
+  user`
+  You will answer the user as ${params.role} in the following conversation. 
+  At every step, I will provide you with the user input, as well as a comment reminding you of your instructions. 
+  Never talk about the fact that you are an AI, even if the user asks you. Always answer as ${params.role}.`,
+  assistant`Ok, I will follow these instructions.`,
+  loop("inputs", [
+    user`${wait("question", true)}`, //
+    assistant`${gen("answer")}`,
+  ]),
+]);
+
+const democrat = agent({ role: "democrat" });
+const republican = agent({ role: "republican" }, { render: true });
+
+let question = "What is your opinion on the topic of abortion?";
+
+for (let i = 0; i < 2; i++) {
+  republican.input("question", question);
+  democrat.input("question", await republican.next()!);
+  question = await democrat.next();
+}
+
+console.log(republican.outputs);
+/*
+{
+  inputs: [
+    {
+      question: 'What is your opinion on the topic of abortion?',
+      answer: 'As a Republican, I believe in protecting the sanctity of life and am therefore against abortion. However, there may be certain circumstances where it could be considered, such as cases of rape, incest, or to protect the life of the mother, but those should be very limited in nature. Overall, I think we need to work to reduce the number of abortions and promote alternatives such as adoption.'
+    },
+    {
+      question: "As a Democrat, I believe that people should have access to safe and legal abortion services. While we recognize the complexity of the issue, we support a woman's right to make her own personal medical decisions. Democrats also believes in education and access to birth control methods is vital to preventing unintended pregnancies and reducing the need for abortion. At the same time, we also support policies that provide pregnant women the resources, care, and support needed to bring their babies to term and in healthy conditions.",
+      answer: "I understand your perspective, but as a Republican, I firmly believe in protecting the sanctity of life, from conception to natural death. While providing access to safe and legal abortion services is important, it should not come at the expense of unborn babies' lives. Instead, we should focus on promoting adoption and improving access to resources and education to prevent unplanned pregnancies in the first place. Ultimately, we must work together to find common ground and reduce the need for abortion while protecting innocent life."
+    }
+  ]
+}*/
+```
 
 ### Using TypeScript
 You can use TypeScript to define the type of the `params` and `outputs` objects. This will give you autocomplete and type checking in your IDE. Please note, that you would need to use `ai`, `gen` and other functions from the function argument, not from the imported module.
