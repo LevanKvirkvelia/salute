@@ -14,7 +14,7 @@
 
 ### Why?
 The idea for Salute came up after my experements with prompting GPT4 to code AI agents using OpenAI's or LangChain's libraries. The problem is that these libraries are not designed to be used by AI, ironically they are not easy to use for humans either.
-That's why I decided to build a library that would be easy to use by both humans and AIs. 
+That's why I decided to build a library that would be easy to use for both humans and AIs. 
 
 
 ### Key Features
