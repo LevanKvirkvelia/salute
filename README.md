@@ -51,7 +51,7 @@ This page will give you an introduction to the 80% of Salute concepts and featur
     4. [Array.map for Chat Sequences](#arraymap-for-chat-sequences)
     5. [Davinci model JSON Example](#davinci-model-json-example)
 - Advanced Examples
-    1. [block to control prompt context and n to generate multiple completions](#block-to-control-prompt-context-and-n-to-generate-multiple-completions)
+    1. [Control prompt context and generate multiple completions](#control-prompt-context-and-generate-multiple-completions)
     2. [Two agents talking to each other](#two-agents-talking-to-each-other)
     3. [Using TypeScript](#using-typescript)
 
@@ -309,7 +309,7 @@ const jsonAgent = davinci(
 
 ## Advanced Examples
 
-### `block` to control prompt context and `n` to generate multiple completions
+### Control prompt context and generate multiple completions
 Here we use `block` to hide parts of the sequence until the condition is met, so you can control prompt context that will be sent with next `gen` and reduce the price of the API call.
 
 You can also pass options to `gen` to control the generated text. The `n` option defines how many completions to generate. If `n` is greater than 1, the output will be an array of strings, but only the first string will be used in the prompt for the next `gen`. Using `n` speeds up the generation process, because you can generate multiple completions with one API call.
