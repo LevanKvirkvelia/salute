@@ -1,6 +1,6 @@
 {
   "name": "salutejs",
-  "version": "0.0.4",
+  "version": "0.0.4-experimental",
   "description": "Node.js library for the OpenAI API",
   "repository": {
     "type": "git",
