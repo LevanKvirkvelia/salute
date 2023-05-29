@@ -5,7 +5,7 @@
 </picture>
 </div>
 
-# Salute - a declarative JS library to build AI agents in React way. Designed to be easy to use for both humans and AIs
+# Salute - build AI agents in a declarative way. Designed to be easy to use for both humans and AIs
   
 <!-- [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
 ![GitHub license](https://img.shields.io/github/license/LevanKvirkvelia/salute) -->
