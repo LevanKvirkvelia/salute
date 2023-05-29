@@ -88,12 +88,12 @@ export const gen = (name: string, options?: GenOptions): Action<any, any> => {
     const isOutputToArray = context.leafId
       .slice(-2)
       .every((x) => typeof x === "number");
-    console.log({
-      isMulti,
-      n: options?.n,
-      outputToArray: isOutputToArray,
-      address: context.leafId,
-    });
+    // console.log({
+    //   isMulti,
+    //   n: options?.n,
+    //   outputToArray: isOutputToArray,
+    //   address: context.leafId,
+    // });
     if (!isOutputToArray)
       outputs[name] = isMulti ? fullStrings : fullStrings[0];
     else {

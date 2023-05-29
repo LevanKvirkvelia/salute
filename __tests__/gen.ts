@@ -1,6 +1,6 @@
 import { describe, it } from "vitest";
 import { assistant, createLLM, gen, map, system, user } from "../src";
-import { block } from "../src/actions/actions";
+import { ai, block } from "../src/actions/actions";
 
 const fakeChatLLM = createLLM(async function* ({ prompt, ...props }) {
   const n = props.n || 1;
@@ -41,6 +41,28 @@ describe("suite", () => {
     expect(result.answer).toHaveLength(QUESTIONS.length);
   });
 
+  it("completion simple map", async ({ expect }) => {
+    const agent = fakeLLM(
+      ({}) =>
+        ai`Hello, world!
+
+      ${map(
+        "items",
+        QUESTIONS.map((item) => [
+          user`${item}`, //
+          assistant`${gen("answer")}`,
+        ])
+      )}`
+    );
+
+    const result = await agent({ query: `A picture of a dog` });
+
+    expect(result).toHaveProperty("items");
+    expect(result.items).toHaveLength(QUESTIONS.length);
+    expect(result.items[0]).toHaveProperty("answer");
+    expect(result.items[0].answer).toBeTypeOf("string");
+  });
+
   it("chat simple array", async ({ expect }) => {
     const agent = fakeChatLLM(({}) => [
       system`Hello, world!`,
@@ -70,7 +92,6 @@ describe("suite", () => {
 
     const result = await agent({ query: `A picture of a dog` });
 
-    console.log(result);
     expect(result).toHaveProperty("items");
     expect(result.items).toHaveLength(QUESTIONS.length);
     expect(result.items[0]).toHaveProperty("answer");
@@ -121,7 +142,6 @@ describe("suite", () => {
 
     const result = await agent({ query: `A picture of a dog` });
 
-    console.log(result);
     expect(result).toHaveProperty("topics");
     expect(result.topics).toHaveLength(TOPICS.length);
     expect(result.topics[0]).toHaveProperty("items");
