@@ -6,7 +6,6 @@
 </div>
 
 [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
-
 # Salute - a simple and declarative way to control LLMs
   
 
