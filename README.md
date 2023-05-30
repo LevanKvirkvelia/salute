@@ -5,10 +5,10 @@
 </picture>
 </div>
 
-# Salute - build AI agents in a declarative way. Designed to be easy to use for both humans and AIs
+[![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
+
+# Salute - a simple and declarative way to control LLMs
   
-<!-- [![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
-![GitHub license](https://img.shields.io/github/license/LevanKvirkvelia/salute) -->
 
 > A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby.
 
@@ -260,7 +260,6 @@ const agent = gpt3(({ params }) => [
     Generate descriptions about my query, in realistic photographic style, for an Instagram post. 
     The answer should be one sentence long, starting directly with the description.
   `,
-
   map('items', QUESTIONS.map((item) => [
     user`${item}`, 
     assistant`${gen("answer")}`
