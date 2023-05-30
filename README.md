@@ -1,3 +1,4 @@
+[![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
 <div align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://github.com/LevanKvirkvelia/salute/assets/5202843/29ea7a16-f92d-4780-bb68-d27ab1dd98dd">
@@ -5,7 +6,6 @@
 </picture>
 </div>
 
-[![npm version](https://badge.fury.io/js/salutejs.svg)](https://badge.fury.io/js/salutejs)
 # Salute - a simple and declarative way to control LLMs
   
 
