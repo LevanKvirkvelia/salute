@@ -83,6 +83,11 @@ const result = await agent(
 );
 
 console.log(result);
+/*
+{
+  answer: "You can be more productive by...",
+}
+*/
 ```
 ![Simple Sequence](https://github.com/LevanKvirkvelia/salute/assets/5202843/4a9e0479-d876-4185-9470-264d33ec0840)
 
@@ -119,7 +124,9 @@ const result = await agent(
 console.log(result);
 /*
 {
+  expertNames: "Elon Musk, Bill Gates, and Jeff Bezos...",
   answer: "You can be more productive by...",
+  fixedAnswer: "You can be more productive by..."
 }
 */
 ```
@@ -180,13 +187,6 @@ const result = await agent(
 );
 
 console.log(result);
-/*
-{
-  expertNames: "Elon Musk, Bill Gates, and Jeff Bezos...",
-  answer: "You can be more productive by...",
-  fixedAnswer: "You can be more productive by..."
-}
-*/
 ```
 
 ### Array.map for Chat Sequences
