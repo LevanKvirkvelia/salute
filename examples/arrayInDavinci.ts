@@ -1,4 +1,4 @@
-import { davinci, llm } from "..";
+import { davinci, llm } from "../src";
 
 async function main() {
   const QUESTIONS = [

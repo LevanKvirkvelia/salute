@@ -1,4 +1,4 @@
-import { assistant, gpt3, system, user } from "..";
+import { assistant, gpt3, system, user } from "../src";
 
 const AI_NAME = "Midjourney";
 

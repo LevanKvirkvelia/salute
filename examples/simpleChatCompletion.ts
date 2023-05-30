@@ -1,4 +1,4 @@
-import { assistant, gen, gpt3, system, user } from "../dist";
+import { assistant, gen, gpt3, system, user } from "../src";
 
 async function main() {
   const agent = gpt3(

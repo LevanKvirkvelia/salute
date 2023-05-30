@@ -1,4 +1,4 @@
-import { assistant, gen, gpt4, system } from "..";
+import { assistant, gen, gpt4, system } from "../src";
 import { block } from "../src/actions/actions";
 
 async function main() {

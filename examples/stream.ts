@@ -1,4 +1,4 @@
-import { ai, davinci, gen } from "..";
+import { ai, davinci, gen } from "../src";
 
 async function main() {
   const proverbAgent = davinci<

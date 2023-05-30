@@ -1,4 +1,4 @@
-import { davinci } from "..";
+import { davinci } from "../src";
 
 async function main() {
   const jsonAgent = davinci(
