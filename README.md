@@ -12,6 +12,7 @@
 
 > A JavaScript library that would be born if [Microsoft Guidance](https://github.com/microsoft/guidance) and [React](https://react.dev/) had a baby.
 
+
 ### Key Features
 - React-like composability and declarative approach.
 - Limited number of abstractions, minimal overhead, small code base.
@@ -19,8 +20,6 @@
 - Low-level control, matching the way LLM actually processes the text.
 - Faster learning curve due to familiar JavaScript features.
 - Supports type-checking, linting, syntax highlighting, and auto-completion.
-
-<br/>
 
 
 ### Installation
