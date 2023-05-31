@@ -27,6 +27,16 @@ const QUESTIONS = [
 
 // The two tests marked with concurrent will be run in parallel
 describe("suite", () => {
+  it("completion inline", async ({ expect }) => {
+    const agent = fakeLLM(({}) => [
+      system`Hello, world!`,
+      assistant`${gen("answer")}`,
+    ]);
+    const result = await agent({});
+
+    expect(result).toHaveProperty("answer");
+    expect(result.answer).toBeTypeOf("string");
+  });
   it("completion simple array", async ({ expect }) => {
     const agent = fakeLLM(({}) => [
       system`Hello, world!`,
