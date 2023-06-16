@@ -55,7 +55,7 @@ This page will give you an introduction to the 80% of Salute concepts and featur
 
 
 ```ts
-import { gpt3, gen, assistant, system, user } from "salute";
+import { gpt3, gen, assistant, system, user } from "salutejs";
 
 const agent = gpt3(
   ({ params })=>[
@@ -88,7 +88,7 @@ console.log(result);
 To improve the model's performance, let's add another two steps to the chat sequence. The `gen` function saves the output as part of the prompt for the next `gen` function, making it easy to create chat sequences with minimal boilerplate. 
 
 ```ts
-import { gpt3, gen, assistant, system, user } from "salute";
+import { gpt3, gen, assistant, system, user } from "salutejs";
 
 const agent = gpt3(
   ({ params })=>[
