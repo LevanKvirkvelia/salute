@@ -24,7 +24,8 @@ export {
   ai,
   loop,
   map,
-  wait
+  wait,
+  block
 } from "./actions/actions";
 export type {
   RoleTemplateFunction,
